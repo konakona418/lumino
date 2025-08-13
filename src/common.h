@@ -28,6 +28,8 @@ const char* lm__error_vtbl_what(lm_error_t* error);
 
 lm_error_t* lm_error_alloc(const char* msg);
 
+const char* lm_error_what(lm_error_t* error);
+
 void lm_error_free(lm_error_t* error);
 
 typedef struct lm_string_s {
@@ -62,3 +64,37 @@ void* lm__alloc(size_t size);
 void lm__free(void* ptr);
 
 lm_bool lm__alloc_counter_is_zero();
+
+typedef struct lm_list_node_s {
+    struct lm_list_node_s* next;
+    struct lm_list_node_s* prev;
+} lm_list_node_t;
+
+lm_list_node_t* lm_list_node_alloc();
+
+void lm_list_node_init(lm_list_node_t* node);
+
+void lm_list_node_free(lm_list_node_t* node);
+
+void lm_list_add_head(lm_list_node_t* list, lm_list_node_t* node);
+
+void lm_list_add_tail(lm_list_node_t* list, lm_list_node_t* node);
+
+lm_list_node_t* lm_list_replace(lm_list_node_t* list, lm_list_node_t* node);
+
+void lm_list_remove(lm_list_node_t* node);
+
+typedef void (*lm__list_iterator_pfn)(lm_list_node_t* node, void* ctx);
+
+void lm_list_iterate(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx);
+
+void lm_list_iterate_safe(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx);
+
+#define container_of(ptr, type, member)                    \
+    ({                                                     \
+        const typeof(((type*) 0)->member)* __mptr = (ptr); \
+        (type*) ((char*) __mptr - offsetof(type, member)); \
+    })
+
+#define lm_list_entry(node, type, member) \
+    container_of(node, type, member)

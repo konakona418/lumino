@@ -157,11 +157,107 @@ lm_error_t* lm_error_alloc(const char* msg) {
     return error;
 }
 
+const char* lm_error_what(lm_error_t* error) {
+    _LM_ASSERT(error != NULL, "error is null");
+    _LM_ASSERT(error->vtbl.what != NULL, "function ptr 'what' in vtable of error is null");
+
+    return error->vtbl.what(error);
+}
+
 void lm_error_free(lm_error_t* error) {
     if (error == NULL) {
         return;
     }
 
     lm__error_vtbl_free_pfn free_fn = error->vtbl.free;
+
+    _LM_ASSERT(free_fn != NULL, "function ptr 'free' in vtable of error is null");
+
     free_fn(error);
+}
+
+
+lm_list_node_t* lm_list_node_alloc() {
+    lm_list_node_t* node = lm__alloc(sizeof(lm_list_node_t));
+    lm_list_node_init(node);
+    return node;
+}
+
+void lm_list_node_init(lm_list_node_t* node) {
+    node->next = node;
+    node->prev = node;
+}
+
+void lm_list_node_free(lm_list_node_t* node) {
+    // _LM_ASSERT(node->next == NULL && node->prev == NULL, "node is not properly detached from list");
+
+    lm__free(node);
+}
+
+void lm_list_add_head(lm_list_node_t* list, lm_list_node_t* node) {
+    _LM_ASSERT(list != NULL && node != NULL, "list or node is null");
+
+    lm_list_node_t* orig_next = list->next;
+
+    list->next = node;
+    node->prev = list;
+
+    node->next = orig_next;
+    orig_next->prev = node;
+}
+
+void lm_list_add_tail(lm_list_node_t* list, lm_list_node_t* node) {
+    _LM_ASSERT(list != NULL && node != NULL, "list or node is null");
+
+    lm_list_node_t* orig_prev = list->prev;
+
+    list->prev = node;
+    node->prev = orig_prev;
+
+    node->next = list;
+    orig_prev->next = node;
+}
+
+lm_list_node_t* lm_list_replace(lm_list_node_t* list, lm_list_node_t* node) {
+    _LM_ASSERT(list != NULL && node != NULL, "list or node is null");
+
+    lm_list_node_t* replaced = list;
+
+    list->prev->next = node;
+    node->prev = list->prev;
+
+    list->next->prev = node;
+    node->next = list->next;
+
+    replaced->next = NULL;
+    replaced->prev = NULL;
+
+    return replaced;
+}
+
+void lm_list_remove(lm_list_node_t* node) {
+    _LM_ASSERT(node != NULL, "node is null");
+
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+
+    node->next = NULL;
+    node->prev = NULL;
+}
+
+void lm_list_iterate(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx) {
+    lm_list_node_t* node = list;
+    do {
+        iterator(node, ctx);
+        node = node->next;
+    } while (node != list);
+}
+
+void lm_list_iterate_safe(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx) {
+    lm_list_node_t* node = list;
+    do {
+        lm_list_node_t* next = node->next;
+        iterator(node, ctx);
+        node = next;
+    } while (node != list);
 }
