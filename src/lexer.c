@@ -18,6 +18,11 @@
         return (lm_token_t){_type, NULL};                                                \
     }
 
+#define _LM_HANDLE_CHAR(char_lit, token_type) \
+    case char_lit:                            \
+        lm__lexer_advance(lexer);             \
+        return (lm_token_t){token_type, NULL};
+
 const char* lm_token_type_to_string(lm_token_type_t type) {
     switch (type) {
         case LM_TOKEN_TYPE_INVALID:
@@ -209,57 +214,23 @@ lm_token_t lm_lexer_next_token(lm_lexer_t* lexer) {
     _LM_HANDLE_TWO_CHAR_OPS('>', '=', LM_TOKEN_TYPE_OP_GREATER_THAN_EQUAL, lexer)
 
     switch (lm__lexer_current_char(lexer)) {
-        case ':':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_COLON, NULL};
-        case ',':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_COMMA, NULL};
-        case '.':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_DOT, NULL};
-        case ';':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_SEMICOLON, NULL};
-        case '{':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_L_CURLY_BRACKET, NULL};
-        case '}':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_R_CURLY_BRACKET, NULL};
-        case '(':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_L_PARENTHESIS, NULL};
-        case ')':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_R_PARENTHESIS, NULL};
-        case '[':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_L_SQUARE_BRACKET, NULL};
-        case ']':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_R_SQUARE_BRACKET, NULL};
-        case '=':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_ASSIGN, NULL};
-        case '+':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_ADD, NULL};
-        case '-':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_SUB, NULL};
-        case '*':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_MUL, NULL};
-        case '/':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_DIV, NULL};
-        case '%':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_MOD, NULL};
-        case '^':
-            lm__lexer_advance(lexer);
-            return (lm_token_t){LM_TOKEN_TYPE_OP_POW, NULL};
+        _LM_HANDLE_CHAR(':', LM_TOKEN_TYPE_COLON)
+        _LM_HANDLE_CHAR(',', LM_TOKEN_TYPE_COMMA)
+        _LM_HANDLE_CHAR('.', LM_TOKEN_TYPE_DOT)
+        _LM_HANDLE_CHAR(';', LM_TOKEN_TYPE_SEMICOLON)
+        _LM_HANDLE_CHAR('{', LM_TOKEN_TYPE_L_CURLY_BRACKET)
+        _LM_HANDLE_CHAR('}', LM_TOKEN_TYPE_R_CURLY_BRACKET)
+        _LM_HANDLE_CHAR('(', LM_TOKEN_TYPE_L_PARENTHESIS)
+        _LM_HANDLE_CHAR(')', LM_TOKEN_TYPE_R_PARENTHESIS)
+        _LM_HANDLE_CHAR('[', LM_TOKEN_TYPE_L_SQUARE_BRACKET)
+        _LM_HANDLE_CHAR(']', LM_TOKEN_TYPE_R_SQUARE_BRACKET)
+        _LM_HANDLE_CHAR('=', LM_TOKEN_TYPE_OP_ASSIGN)
+        _LM_HANDLE_CHAR('+', LM_TOKEN_TYPE_OP_ADD)
+        _LM_HANDLE_CHAR('-', LM_TOKEN_TYPE_OP_SUB)
+        _LM_HANDLE_CHAR('*', LM_TOKEN_TYPE_OP_MUL)
+        _LM_HANDLE_CHAR('/', LM_TOKEN_TYPE_OP_DIV)
+        _LM_HANDLE_CHAR('%', LM_TOKEN_TYPE_OP_MOD)
+        _LM_HANDLE_CHAR('^', LM_TOKEN_TYPE_OP_POW)
         default: {
             char chr = lm__lexer_current_char(lexer);
             if (chr == '\0') {
