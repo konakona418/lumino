@@ -99,6 +99,8 @@ void lm__lexer_emit_error(lm_lexer_t* lexer, const char* msg);
 
 lm_token_t lm_lexer_next_token(lm_lexer_t* lexer);
 
+const lm__lexer_stats_t* lm_lexer_get_stats(lm_lexer_t* lexer);
+
 void lm__lexer_set_stats_next_line(lm_lexer_t* lexer);
 
 void lm__lexer_advance(lm_lexer_t* lexer);

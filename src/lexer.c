@@ -1,4 +1,5 @@
 #include "lexer.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -270,6 +271,10 @@ lm_token_t lm_lexer_next_token(lm_lexer_t* lexer) {
             return invalid;
         }
     }
+}
+
+const lm__lexer_stats_t* lm_lexer_get_stats(lm_lexer_t* lexer) {
+    return &lexer->stats;
 }
 
 void lm__lexer_set_stats_next_line(lm_lexer_t* lexer) {
