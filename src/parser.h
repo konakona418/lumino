@@ -19,7 +19,7 @@ void lm__parser_error_free(lm_error_t* error);
 lm_parser_error_t* lm_parser_error_alloc(const char* msg, struct lm_parser_s* parser);
 
 typedef enum lm__parser_block_scope_type_e {
-    LM__PARSER_BLOCK_SCOPE_TYPE_NONE,
+    LM__PARSER_BLOCK_SCOPE_TYPE_NONE = 0,
     LM__PARSER_BLOCK_SCOPE_TYPE_DONT_CARE,
     LM__PARSER_BLOCK_SCOPE_TYPE_PROGRAM,
     LM__PARSER_BLOCK_SCOPE_TYPE_BLOCK,
@@ -28,16 +28,27 @@ typedef enum lm__parser_block_scope_type_e {
 typedef struct lm__parser_block_scope_variable_s {
     lm_list_node_t list_node;
 
-    lm_string_t* name;
+    const lm_string_t* name;
 } lm__parser_block_scope_variable_t;
+
+lm__parser_block_scope_variable_t* lm__parser_block_scope_variable_alloc(const lm_string_t* name);
+
+void lm__parser_block_scope_variable_free(lm__parser_block_scope_variable_t* var);
 
 typedef struct lm__parser_block_scope_s {
     lm_list_node_t list_node;
 
     lm__parser_block_scope_type_t scope_type;
-    lm_list_node_t* variables;
+    lm_list_node_t variables_head;
 } lm__parser_block_scope_t;
 
+lm__parser_block_scope_t* lm__parser_block_scope_alloc(lm__parser_block_scope_type_t scope_type);
+
+void lm__parser_block_scope_free(lm__parser_block_scope_t* scope);
+
+void lm__parser_block_scope_add_variable(lm__parser_block_scope_t* scope, const lm_string_t* name);
+
+lm_bool lm__parser_block_scope_has_variable(lm__parser_block_scope_t* scope, const lm_string_t* name);
 
 typedef void (*lm__parser_error_handler_pfn)(lm_error_t* error);
 
@@ -45,6 +56,7 @@ typedef struct lm_parser_s {
     lm_lexer_t* lexer;
 
     lm_token_t current_token;
+    lm_list_node_t block_scope_head;
 
     lm__parser_error_handler_pfn error_handler;
 } lm_parser_t;
@@ -54,6 +66,14 @@ lm_parser_t* lm_parser_alloc(lm_lexer_t* lexer);
 void lm_parser_free(lm_parser_t* parser);
 
 lm__ast_program_t* lm_parser_parse(lm_parser_t* parser);
+
+void lm__parser_add_scope(lm_parser_t* parser, lm__parser_block_scope_type_t type);
+
+void lm__parser_remove_scope(lm_parser_t* parser);
+
+void lm__parser_emit_scope_symbol(lm_parser_t* parser, const lm_string_t* name);
+
+lm_bool lm__parser_is_symbol_defined(lm_parser_t* parser, const lm_string_t* name);
 
 void lm__parser_emit_error(lm_parser_t* parser, const char* msg);
 

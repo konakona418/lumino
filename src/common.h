@@ -67,6 +67,8 @@ size_t lm_string_len(lm_string_t* str);
 
 size_t lm_string_cap(lm_string_t* str);
 
+lm_bool lm_string_equal(const lm_string_t* lhs, const lm_string_t* rhs);
+
 char lm_string_get(lm_string_t* str, size_t index);
 
 char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid);
@@ -98,15 +100,27 @@ void lm_list_add_head(lm_list_node_t* list, lm_list_node_t* node);
 
 void lm_list_add_tail(lm_list_node_t* list, lm_list_node_t* node);
 
+lm_list_node_t* lm_list_head(lm_list_node_t* list);
+
+lm_list_node_t* lm_list_tail(lm_list_node_t* list);
+
 lm_list_node_t* lm_list_replace(lm_list_node_t* list, lm_list_node_t* node);
 
 void lm_list_remove(lm_list_node_t* node);
 
 typedef void (*lm__list_iterator_pfn)(lm_list_node_t* node, void* ctx);
 
+typedef lm_bool (*lm__list_iterator_predicated_pfn)(lm_list_node_t* node, void* ctx);
+
 void lm_list_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx);
 
+void lm_list_iterate_predicated(lm_list_node_t* head, lm__list_iterator_predicated_pfn iterator, void* ctx);
+
 void lm_list_iterate_safe(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx);
+
+void lm_list_reverse_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx);
+
+void lm_list_reverse_iterate_predicated(lm_list_node_t* head, lm__list_iterator_predicated_pfn iterator, void* ctx);
 
 #define container_of(ptr, type, member)                    \
     ({                                                     \

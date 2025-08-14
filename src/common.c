@@ -120,6 +120,10 @@ size_t lm_string_cap(lm_string_t* str) {
     return str->capacity;
 }
 
+lm_bool lm_string_equal(const lm_string_t* lhs, const lm_string_t* rhs) {
+    return strcmp(lhs->data, rhs->data) == 0;
+}
+
 char lm_string_get(lm_string_t* str, size_t index) {
     _LM_ASSERT(index < str->capacity, "string index out of bounds");
     return str->data[index];
@@ -218,6 +222,14 @@ void lm_list_add_tail(lm_list_node_t* list, lm_list_node_t* node) {
     orig_prev->next = node;
 }
 
+lm_list_node_t* lm_list_head(lm_list_node_t* list) {
+    return list->next;
+}
+
+lm_list_node_t* lm_list_tail(lm_list_node_t* list) {
+    return list->prev;
+}
+
 lm_list_node_t* lm_list_replace(lm_list_node_t* list, lm_list_node_t* node) {
     _LM_ASSERT(list != NULL && node != NULL, "list or node is null");
 
@@ -253,6 +265,17 @@ void lm_list_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void*
     };
 }
 
+void lm_list_iterate_predicated(lm_list_node_t* head, lm__list_iterator_predicated_pfn iterator, void* ctx) {
+    lm_list_node_t* node = head->next;
+    while (node != head) {
+        lm_bool result = iterator(node, ctx);
+        if (!result) {
+            break;
+        }
+        node = node->next;
+    };
+}
+
 void lm_list_iterate_safe(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx) {
     lm_list_node_t* node = head->next;
     while (node != head) {
@@ -260,4 +283,23 @@ void lm_list_iterate_safe(lm_list_node_t* head, lm__list_iterator_pfn iterator, 
         iterator(node, ctx);
         node = next;
     };
+}
+
+void lm_list_reverse_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx) {
+    lm_list_node_t* node = head->prev;
+    while (node != head) {
+        iterator(node, ctx);
+        node = node->prev;
+    }
+}
+
+void lm_list_reverse_iterate_predicated(lm_list_node_t* head, lm__list_iterator_predicated_pfn iterator, void* ctx) {
+    lm_list_node_t* node = head->prev;
+    while (node != head) {
+        lm_bool result = iterator(node, ctx);
+        if (!result) {
+            break;
+        }
+        node = node->prev;
+    }
 }
