@@ -166,6 +166,8 @@ typedef enum lm__ast_binary_expr_type_e {
     LM_AST_BINARY_EXPR_TYPE_GT,
     LM_AST_BINARY_EXPR_TYPE_GTE,
     LM_AST_BINARY_EXPR_TYPE_POW,
+    LM_AST_BINARY_EXPR_TYPE_LAND,
+    LM_AST_BINARY_EXPR_TYPE_LOR,
 } lm__ast_binary_expr_type_t;
 
 typedef struct lm__ast_binary_expr_s {

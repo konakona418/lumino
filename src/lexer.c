@@ -209,10 +209,14 @@ lm_token_t lm_lexer_next_token(lm_lexer_t* lexer) {
         return lm__lexer_get_string_literal(lexer);
     }
 
-    _LM_HANDLE_TWO_CHAR_OPS('=', '=', LM_TOKEN_TYPE_OP_EQUAL, lexer)
-    _LM_HANDLE_TWO_CHAR_OPS('!', '=', LM_TOKEN_TYPE_OP_NOT_EQUAL, lexer)
-    _LM_HANDLE_TWO_CHAR_OPS('<', '=', LM_TOKEN_TYPE_OP_LESS_THAN_EQUAL, lexer)
-    _LM_HANDLE_TWO_CHAR_OPS('>', '=', LM_TOKEN_TYPE_OP_GREATER_THAN_EQUAL, lexer)
+    if (!lm__lexer_is_next_eof(lexer)) {
+        _LM_HANDLE_TWO_CHAR_OPS('=', '=', LM_TOKEN_TYPE_OP_EQUAL, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('!', '=', LM_TOKEN_TYPE_OP_NOT_EQUAL, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('<', '=', LM_TOKEN_TYPE_OP_LESS_THAN_EQUAL, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('>', '=', LM_TOKEN_TYPE_OP_GREATER_THAN_EQUAL, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('&', '&', LM_TOKEN_TYPE_OP_LOGICAL_AND, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('|', '|', LM_TOKEN_TYPE_OP_LOGICAL_OR, lexer)
+    }
 
     switch (lm__lexer_current_char(lexer)) {
         _LM_HANDLE_CHAR(':', LM_TOKEN_TYPE_COLON)

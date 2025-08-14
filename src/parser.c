@@ -286,13 +286,97 @@ lm__ast_expression_t* lm__parser_parse_expression(lm_parser_t* parser) {
 }
 
 lm__ast_expression_t* lm__parser_parse_assign_expression(lm_parser_t* parser) {
-    lm__ast_expression_t* lhs = lm__parser_parse_additive_expression(parser);
+    lm__ast_expression_t* lhs = lm__parser_parse_logical_and_expression(parser);
 
     if (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_ASSIGN) {
         lm__parser_next(parser);
-        lm__ast_expression_t* rhs = lm__parser_parse_additive_expression(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_logical_and_expression(parser);
 
         return _LM_CAST(lm__ast_expression_t, lm__ast_assign_expr_alloc(lhs, rhs));
+    }
+
+    return lhs;
+}
+
+lm__ast_expression_t* lm__parser_parse_logical_and_expression(lm_parser_t* parser) {
+    lm__ast_expression_t* lhs = lm__parser_parse_logical_or_expression(parser);
+
+    while (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_LOGICAL_AND) {
+        lm__parser_next(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_logical_or_expression(parser);
+
+        return _LM_CAST(lm__ast_expression_t,
+                        lm__ast_binary_expr_alloc(LM_AST_BINARY_EXPR_TYPE_LAND, lhs, rhs));
+    }
+
+    return lhs;
+}
+
+lm__ast_expression_t* lm__parser_parse_logical_or_expression(lm_parser_t* parser) {
+    lm__ast_expression_t* lhs = lm__parser_parse_comparative_expression(parser);
+
+    while (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_LOGICAL_OR) {
+        lm__parser_next(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_comparative_expression(parser);
+
+        return _LM_CAST(lm__ast_expression_t,
+                        lm__ast_binary_expr_alloc(LM_AST_BINARY_EXPR_TYPE_LOR, lhs, rhs));
+    }
+
+    return lhs;
+}
+
+lm__ast_expression_t* lm__parser_parse_comparative_expression(lm_parser_t* parser) {
+    lm__ast_expression_t* lhs = lm__parser_parse_relational_expression(parser);
+
+    while (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_EQUAL ||
+           lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_NOT_EQUAL) {
+        lm__ast_binary_expr_type_t type =
+                lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_EQUAL
+                        ? LM_AST_BINARY_EXPR_TYPE_EQ
+                        : LM_AST_BINARY_EXPR_TYPE_NEQ;
+
+        lm__parser_next(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_relational_expression(parser);
+
+        return _LM_CAST(lm__ast_expression_t,
+                        lm__ast_binary_expr_alloc(type, lhs, rhs));
+    }
+
+    return lhs;
+}
+
+lm__ast_expression_t* lm__parser_parse_relational_expression(lm_parser_t* parser) {
+    lm__ast_expression_t* lhs = lm__parser_parse_additive_expression(parser);
+
+    while (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_LESS_THAN ||
+           lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_LESS_THAN_EQUAL ||
+           lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_GREATER_THAN ||
+           lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_GREATER_THAN_EQUAL) {
+        lm__ast_binary_expr_type_t type;
+
+        switch (lm__parser_current(parser).type) {
+            case LM_TOKEN_TYPE_OP_LESS_THAN:
+                type = LM_AST_BINARY_EXPR_TYPE_LT;
+                break;
+            case LM_TOKEN_TYPE_OP_LESS_THAN_EQUAL:
+                type = LM_AST_BINARY_EXPR_TYPE_LTE;
+                break;
+            case LM_TOKEN_TYPE_OP_GREATER_THAN:
+                type = LM_AST_BINARY_EXPR_TYPE_GT;
+                break;
+            case LM_TOKEN_TYPE_OP_GREATER_THAN_EQUAL:
+                type = LM_AST_BINARY_EXPR_TYPE_GTE;
+                break;
+            default:
+                break;
+        }
+
+        lm__parser_next(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_additive_expression(parser);
+
+        return _LM_CAST(lm__ast_expression_t,
+                        lm__ast_binary_expr_alloc(type, lhs, rhs));
     }
 
     return lhs;
