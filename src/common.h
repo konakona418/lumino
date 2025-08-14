@@ -4,11 +4,23 @@
 #include <stddef.h>
 
 #define _LM_ASSERT(_cond, _msg) (assert(((_msg) && (_cond))))
+#define _LM_ASSERT_NOT_NULL(_ptr, _msg) _LM_ASSERT((_ptr), _msg)
+#define _LM_ASSERT_NULL(_ptr, _msg) _LM_ASSERT((_ptr == NULL), _msg)
 
 struct lm_error_s;
 
 typedef void (*lm__error_vtbl_free_pfn)(struct lm_error_s* error);
 typedef const char* (*lm__error_vtbl_what_pfn)(struct lm_error_s* error);
+
+#define _LM_CAST(_type, _ptr) ((_type*) (_ptr))
+
+#ifdef __clang__
+#define _LM_NULLABLE _Nullable
+#define _LM_NONNULL _Nonnull
+#else
+#define _LM_NULLABLE
+#define _LM_NONNULL
+#endif
 
 typedef struct lm__error_vtbl_s {
     lm__error_vtbl_free_pfn free;
@@ -59,9 +71,15 @@ char lm_string_get(lm_string_t* str, size_t index);
 
 char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid);
 
+#define lm_move(_p_ptr_dest, _p_ptr_src) ({ *_p_ptr_dest = *_p_ptr_src; *_p_ptr_src = NULL; })
+
 void* lm__alloc(size_t size);
 
 void lm__free(void* ptr);
+
+#define _LM_ALLOC(type) (type*) lm__alloc(sizeof(type))
+#define _LM_FREE(ptr) lm__free(ptr)
+#define _LM_ALLOC_ARRAY(type, count) (type*) lm__alloc(sizeof(type) * count)
 
 lm_bool lm__alloc_counter_is_zero();
 

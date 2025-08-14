@@ -132,10 +132,11 @@ lm_lexer_error_t* lm_lexer_error_alloc(const char* msg, lm__lexer_stats_t* stats
     lexer_error->vtbl.free = lm__lexer_error_free;
     lexer_error->vtbl.what = lm__lexer_error_what;
 
-    size_t buf_size = strlen(msg) + 128;
-    char* buf = lm__alloc(buf_size);
+    size_t buf_size = snprintf(NULL, 0, "Parser error: %s, at file %s line %zu col %zu",
+                               msg, stats->file->data, stats->line, stats->column);
+    char* buf = _LM_ALLOC_ARRAY(char, buf_size + 1);
 
-    int n = snprintf(buf, buf_size, "Lexer error: %s, at file %s line %zu col %zu",
+    int n = snprintf(buf, buf_size + 1, "Lexer error: %s, at file %s line %zu col %zu",
                      msg, stats->file->data, stats->line, stats->column);
 
     _LM_ASSERT(n >= 0, "snprintf failed");

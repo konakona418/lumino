@@ -21,6 +21,7 @@ void lm__lexer_error_free(lm_error_t* error);
 lm_lexer_error_t* lm_lexer_error_alloc(const char* msg, lm__lexer_stats_t* stats);
 
 typedef enum lm_token_type_e {
+    LM_TOKEN_TYPE_NONE,
     LM_TOKEN_TYPE_INVALID,
     LM_TOKEN_TYPE_TERMINATOR,
 

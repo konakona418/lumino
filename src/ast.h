@@ -18,25 +18,42 @@ typedef enum lm__ast_statement_type_e {
     LM_AST_STATEMENT_TYPE_RETURN,
 
     LM_AST_STATEMENT_TYPE_DECL,
+    LM_AST_STATEMENT_TYPE_INCLUDE,
+    LM_AST_STATEMENT_TYPE_DEFINE,
 } lm__ast_statement_type_t;
 
-#define LM_AST_STATEMENT_HEADER \
-    lm__ast_statement_type_t stmt_type;
+struct lm__ast_statement_s;
+typedef void (*lm__ast_statement_free_pfn)(struct lm__ast_statement_s* statement);
+
+typedef struct lm__ast_statement_vtbl_s {
+    lm__ast_statement_free_pfn free;
+} lm__ast_statement_vtbl_t;
+
+#define LM_AST_STATEMENT_HEADER         \
+    lm_list_node_t list_node;           \
+    lm__ast_statement_type_t stmt_type; \
+    lm__ast_statement_vtbl_t vtbl;
 
 typedef struct lm__ast_statement_s {
     LM_AST_STATEMENT_HEADER
 } lm__ast_statement_t;
 
+void lm__ast_statement_free(lm__ast_statement_t* stmt);
+
 typedef struct lm__ast_program_s {
     LM_AST_STATEMENT_HEADER
 
-    lm_list_node_t stmts;
+    lm_list_node_t* stmts;
 } lm__ast_program_t;
+
+lm__ast_program_t* lm__ast_program_alloc(lm_list_node_t* stmts);
+
+void lm__ast_program_free(lm__ast_statement_t* stmt);
 
 typedef struct lm__ast_block_s {
     LM_AST_STATEMENT_HEADER
 
-    lm_list_node_t stmts;
+    lm_list_node_t* stmts;
 } lm__ast_block_t;
 
 typedef struct lm__ast_if_s {
@@ -88,8 +105,25 @@ typedef struct lm__ast_decl_s {
     LM_AST_STATEMENT_HEADER
 
     lm_string_t* name;
-    lm__ast_statement_t* value_stmt;
+    lm__ast_statement_t* _LM_NULLABLE value_stmt;// nullable
 } lm__ast_decl_t;
+
+lm__ast_decl_t* lm__ast_decl_alloc(lm_string_t* name, lm__ast_statement_t* value_stmt);
+
+void lm__ast_decl_free(lm__ast_statement_t* stmt);
+
+typedef struct lm__ast_include_s {
+    LM_AST_STATEMENT_HEADER
+
+    lm_string_t* path;
+} lm__ast_include_t;
+
+typedef struct lm__ast_define_s {
+    LM_AST_STATEMENT_HEADER
+
+    lm_string_t* name;
+    lm__ast_statement_t* value_stmt;
+} lm__ast_define_t;
 
 typedef enum lm__ast_expression_type_e {
     LM_AST_EXPRESSION_TYPE_ASSIGN,
@@ -115,6 +149,10 @@ typedef struct lm__ast_assign_expr_s {
     lm__ast_expression_t* rhs;
 } lm__ast_assign_expr_t;
 
+lm__ast_assign_expr_t* lm__ast_assign_expr_alloc(lm__ast_expression_t* lhs, lm__ast_expression_t* rhs);
+
+void lm__ast_assign_expr_free(lm__ast_statement_t* expr);
+
 typedef enum lm__ast_binary_expr_type_e {
     LM_AST_BINARY_EXPR_TYPE_ADD,
     LM_AST_BINARY_EXPR_TYPE_SUB,
@@ -139,6 +177,13 @@ typedef struct lm__ast_binary_expr_s {
     lm__ast_expression_t* rhs;
 } lm__ast_binary_expr_t;
 
+lm__ast_binary_expr_t* lm__ast_binary_expr_alloc(
+        lm__ast_binary_expr_type_t type,
+        lm__ast_expression_t* lhs,
+        lm__ast_expression_t* rhs);
+
+void lm__ast_binary_expr_free(lm__ast_statement_t* expr);
+
 typedef enum lm__ast_unary_expr_type_e {
     LM_AST_UNARY_EXPR_TYPE_NEG,
 } lm__ast_unary_expr_type_t;
@@ -150,6 +195,12 @@ typedef struct lm__ast_unary_expr_s {
     lm__ast_unary_expr_type_t type;
     lm__ast_expression_t* rhs;
 } lm__ast_unary_expr_t;
+
+lm__ast_unary_expr_t* lm__ast_unary_expr_alloc(
+        lm__ast_unary_expr_type_t type,
+        lm__ast_expression_t* rhs);
+
+void lm__ast_unary_expr_free(lm__ast_statement_t* expr);
 
 typedef enum lm__ast_literal_expr_type_e {
     LM_AST_LITERAL_EXPR_TYPE_BOOL,
@@ -164,8 +215,14 @@ typedef struct lm__ast_literal_expr_s {
     LM_AST_EXPRESSION_HEADER
 
     lm__ast_literal_expr_type_t type;
-    // todo
+    lm_string_t* value;// todo: use union
 } lm__ast_literal_expr_t;
+
+lm__ast_literal_expr_t* lm__ast_literal_expr_alloc(
+        lm__ast_literal_expr_type_t type,
+        lm_string_t* value);
+
+void lm__ast_literal_expr_free(lm__ast_statement_t* expr);
 
 typedef struct lm__ast_var_expr_s {
     LM_AST_STATEMENT_HEADER
@@ -173,3 +230,7 @@ typedef struct lm__ast_var_expr_s {
 
     lm_string_t* name;
 } lm__ast_var_expr_t;
+
+lm__ast_var_expr_t* lm__ast_var_expr_alloc(lm_string_t* name);
+
+void lm__ast_var_expr_free(lm__ast_statement_t* expr);
