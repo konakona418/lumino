@@ -15,7 +15,7 @@ void lm__ast_statement_free_iterator(lm_list_node_t* node, void* ctx) {
     lm__ast_statement_free(stmt);
 }
 
-lm__ast_program_t* lm__ast_program_alloc(lm_list_node_t* stmts) {
+lm__ast_program_t* lm__ast_program_alloc(lm_list_node_t stmts) {
     lm__ast_program_t* program = _LM_ALLOC(lm__ast_program_t);
     program->stmt_type = LM_AST_STATEMENT_TYPE_PROGRAM;
     program->vtbl.free = lm__ast_program_free;
@@ -28,7 +28,7 @@ lm__ast_program_t* lm__ast_program_alloc(lm_list_node_t* stmts) {
 void lm__ast_program_free(lm__ast_statement_t* stmt) {
     lm__ast_program_t* program = (lm__ast_program_t*) stmt;
 
-    lm_list_iterate(program->stmts, lm__ast_statement_free_iterator, NULL);
+    lm_list_iterate(&program->stmts, lm__ast_statement_free_iterator, NULL);
     _LM_FREE(stmt);
 }
 

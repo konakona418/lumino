@@ -48,17 +48,14 @@ void lm_parser_free(lm_parser_t* parser) {
 }
 
 lm__ast_program_t* lm_parser_parse(lm_parser_t* parser) {
-    lm_list_node_t* head = NULL;
+    lm_list_node_t head;
+    lm_list_node_init(&head);
 
     while (lm__parser_current(parser).type != LM_TOKEN_TYPE_TERMINATOR) {
         lm__ast_statement_t* statement = lm__parser_parse_statement(parser);
         lm_list_node_init(&statement->list_node);
 
-        if (head) {
-            lm_list_add_tail(head, &statement->list_node);
-        } else {
-            head = &statement->list_node;
-        }
+        lm_list_add_tail(&head, &statement->list_node);
     }
 
     lm__ast_program_t* program = lm__ast_program_alloc(head);

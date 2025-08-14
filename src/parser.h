@@ -18,6 +18,27 @@ void lm__parser_error_free(lm_error_t* error);
 
 lm_parser_error_t* lm_parser_error_alloc(const char* msg, struct lm_parser_s* parser);
 
+typedef enum lm__parser_block_scope_type_e {
+    LM__PARSER_BLOCK_SCOPE_TYPE_NONE,
+    LM__PARSER_BLOCK_SCOPE_TYPE_DONT_CARE,
+    LM__PARSER_BLOCK_SCOPE_TYPE_PROGRAM,
+    LM__PARSER_BLOCK_SCOPE_TYPE_BLOCK,
+} lm__parser_block_scope_type_t;
+
+typedef struct lm__parser_block_scope_variable_s {
+    lm_list_node_t list_node;
+
+    lm_string_t* name;
+} lm__parser_block_scope_variable_t;
+
+typedef struct lm__parser_block_scope_s {
+    lm_list_node_t list_node;
+
+    lm__parser_block_scope_type_t scope_type;
+    lm_list_node_t* variables;
+} lm__parser_block_scope_t;
+
+
 typedef void (*lm__parser_error_handler_pfn)(lm_error_t* error);
 
 typedef struct lm_parser_s {

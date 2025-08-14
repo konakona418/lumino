@@ -245,19 +245,19 @@ void lm_list_remove(lm_list_node_t* node) {
     node->prev = NULL;
 }
 
-void lm_list_iterate(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx) {
-    lm_list_node_t* node = list;
-    do {
+void lm_list_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx) {
+    lm_list_node_t* node = head->next;
+    while (node != head) {
         iterator(node, ctx);
         node = node->next;
-    } while (node != list);
+    };
 }
 
-void lm_list_iterate_safe(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx) {
-    lm_list_node_t* node = list;
-    do {
+void lm_list_iterate_safe(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx) {
+    lm_list_node_t* node = head->next;
+    while (node != head) {
         lm_list_node_t* next = node->next;
         iterator(node, ctx);
         node = next;
-    } while (node != list);
+    };
 }

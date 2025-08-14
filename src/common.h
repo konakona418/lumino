@@ -104,9 +104,9 @@ void lm_list_remove(lm_list_node_t* node);
 
 typedef void (*lm__list_iterator_pfn)(lm_list_node_t* node, void* ctx);
 
-void lm_list_iterate(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx);
+void lm_list_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx);
 
-void lm_list_iterate_safe(lm_list_node_t* list, lm__list_iterator_pfn iterator, void* ctx);
+void lm_list_iterate_safe(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx);
 
 #define container_of(ptr, type, member)                    \
     ({                                                     \
