@@ -32,6 +32,11 @@ void* lm__alloc(size_t size) {
     return malloc(size);
 }
 
+void* lm__calloc(size_t type_size, size_t size) {
+    lm__alloc_counter_inc();
+    return calloc(type_size, size);
+}
+
 void lm__free(void* ptr) {
     if (ptr == NULL) {
         return;

@@ -77,9 +77,12 @@ char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid);
 
 void* lm__alloc(size_t size);
 
+void* lm__calloc(size_t type_size, size_t size);
+
 void lm__free(void* ptr);
 
 #define _LM_ALLOC(type) (type*) lm__alloc(sizeof(type))
+#define _LM_CALLOC(type, size) (type*) lm__calloc(sizeof(type), size)
 #define _LM_FREE(ptr) lm__free(ptr)
 #define _LM_ALLOC_ARRAY(type, count) (type*) lm__alloc(sizeof(type) * count)
 
