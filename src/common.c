@@ -308,3 +308,40 @@ void lm_list_reverse_iterate_predicated(lm_list_node_t* head, lm__list_iterator_
         node = node->prev;
     }
 }
+
+lm_ref_counted_t* lm_ref_counted_alloc(void* data) {
+    _LM_ASSERT_NOT_NULL(data, "data is null");
+
+    lm_ref_counted_t* rc = _LM_ALLOC(lm_ref_counted_t);
+    lm__ref_counted_internal_t* rc_internal = _LM_ALLOC(lm__ref_counted_internal_t);
+
+    rc_internal->ref = 1;
+    rc_internal->weak_ref = 0;
+
+    rc->internal = rc_internal;
+    rc->data_ptr = data;
+
+    return rc;
+}
+
+void lm_ref_counted_free(lm_ref_counted_t* rc) {
+    rc->internal->ref--;
+
+    if (rc->internal->ref == 0) {
+        _LM_FREE(rc->internal);
+        _LM_FREE(rc->data_ptr);
+    }
+
+    _LM_FREE(rc);
+}
+
+lm_ref_counted_t* lm_ref_counted_clone(lm_ref_counted_t* rc) {
+    lm_ref_counted_t* new_rc = _LM_ALLOC(lm_ref_counted_t);
+
+    new_rc->internal = rc->internal;
+    new_rc->data_ptr = rc->data_ptr;
+
+    rc->internal->ref++;
+
+    return new_rc;
+}

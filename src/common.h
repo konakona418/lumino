@@ -133,3 +133,23 @@ void lm_list_reverse_iterate_predicated(lm_list_node_t* head, lm__list_iterator_
 
 #define lm_list_entry(node, type, member) \
     container_of(node, type, member)
+
+typedef struct lm__ref_counted_internal_s {
+    size_t ref;
+    size_t weak_ref;
+} lm__ref_counted_internal_t;
+
+typedef struct lm_ref_counted_s {
+    lm__ref_counted_internal_t* internal;
+    void* data_ptr;
+} lm_ref_counted_t;
+
+lm_ref_counted_t* lm_ref_counted_alloc(void* data);
+
+void lm_ref_counted_free(lm_ref_counted_t* rc);
+
+lm_ref_counted_t* lm_ref_counted_clone(lm_ref_counted_t* rc);
+
+#define lm_make_ref_counted(_type) (lm_ref_counted_alloc(_LM_ALLOC(_type)))
+
+#define lm_ref_counted_unwrap(_type, _rc_ptr) ((_type*) (_rc)->data)
