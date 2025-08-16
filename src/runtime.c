@@ -99,13 +99,17 @@ void lm__atom_hash_table_realloc(lm__atom_hash_table_t* table) {
 }
 
 lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, lm_string_t* str) {
+    lm_string_t* dup = lm_string_clone(str);// increase ref count
+
     lm_bool found = LM_FALSE;
     lm_atom_t allocated_atom = table->size + 1;
 
-    lm_atom_t atom = lm__atom_hash_table_intern_impl(table, str, allocated_atom, &found);// no LM_ATOM_NIL
+    lm_atom_t atom = lm__atom_hash_table_intern_impl(table, dup, allocated_atom, &found);// no LM_ATOM_NIL
 
     if (!found) {
         table->size++;
+    } else {
+        lm_string_free(dup);
     }
 
     return atom;
