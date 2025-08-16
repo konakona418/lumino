@@ -27,24 +27,12 @@ lm_bool lm__alloc_counter_is_zero() {
 
 void* lm__alloc(size_t size) {
     lm__alloc_counter_inc();
-#ifndef LM_DEBUG_MEM_DETAILS
     return malloc(size);
-#else
-    void* ptr = malloc(size);
-    printf("%p\n", ptr);
-    return ptr;
-#endif
 }
 
 void* lm__calloc(size_t type_size, size_t size) {
     lm__alloc_counter_inc();
-#ifndef LM_DEBUG_MEM_DETAILS
     return calloc(type_size, size);
-#else
-    void* ptr = calloc(type_size, size);
-    printf("%p", ptr);
-    return ptr;
-#endif
 }
 
 void lm__free(void* ptr) {

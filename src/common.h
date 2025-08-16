@@ -7,6 +7,15 @@
 
 #define LM_DEBUG
 #define LM_DEBUG_MEM_DETAILS
+#define LM_DEBUG_MEM_DETAILS_JSON
+
+#if defined(__GNUC__) || defined(__clang__)
+#define _LM_IS_GNUC_OR_CLANG
+#endif
+
+#ifdef _LM_IS_GNUC_OR_CLANG
+#define _LM_HAS_STATEMENT_EXTENSION
+#endif
 
 #define _LM_ASSERT(_cond, _msg) (assert(((_msg) && (_cond))))
 #define _LM_ASSERT_NOT_NULL(_ptr, _msg) _LM_ASSERT((_ptr), _msg)
@@ -102,14 +111,85 @@ void lm__free(void* ptr);
 
 #if defined(LM_DEBUG) && defined(LM_DEBUG_MEM_DETAILS)
 
-#define _LM_ALLOC(type) (printf("alloc: " #type " (%zu) bytes @ ", sizeof(type)), (type*) lm__alloc(sizeof(type)))
-#define _LM_CALLOC(type, size) (printf("alloc: " #type " (%zu) bytes @ ", sizeof(type)), (type*) lm__calloc(sizeof(type), size))
-#define _LM_FREE(ptr) (printf("free: %p \n", ptr), lm__free(ptr))
-#define _LM_ALLOC_ARRAY(type, count)                                       \
-    (printf("alloc: " #type " (%zu) bytes * %zu @ ", sizeof(type), count), \
-     (type*) lm__alloc(sizeof(type) * count))
+#ifdef _LM_HAS_STATEMENT_EXTENSION
+#ifdef LM_DEBUG_MEM_DETAILS_JSON
+
+#define _LM_ALLOC(type)                                                   \
+    ({                                                                    \
+        void* ptr = lm__alloc(sizeof(type));                              \
+        fprintf(stdout, "{\"action\":\"alloc\", \"type\":\"" #type "\", " \
+                        "\"size\":%zu, \"addr\":\"%p\"}\n",               \
+                sizeof(type), ptr);                                       \
+        (type*) ptr;                                                      \
+    })
+
+#define _LM_CALLOC(type, size)                                             \
+    ({                                                                     \
+        void* ptr = lm__calloc(sizeof(type), size);                        \
+        fprintf(stdout, "{\"action\":\"calloc\", \"type\":\"" #type "\", " \
+                        "\"size\":%zu, \"count\":%zu, \"addr\":\"%p\"}\n", \
+                sizeof(type), (size_t) (size), ptr);                       \
+        (type*) ptr;                                                       \
+    })
+
+#define _LM_FREE(ptr)                                                     \
+    do {                                                                  \
+        fprintf(stdout, "{\"action\":\"free\", \"addr\":\"%p\"}\n", ptr); \
+        lm__free(ptr);                                                    \
+    } while (0)
+
+#define _LM_ALLOC_ARRAY(type, count)                                               \
+    ({                                                                             \
+        void* ptr = lm__alloc(sizeof(type) * (count));                             \
+        fprintf(stdout, "{\"action\":\"alloc_array\", \"type\":\"" #type "\", "    \
+                        "\"element_size\":%zu, \"count\":%zu, \"addr\":\"%p\"}\n", \
+                sizeof(type), (size_t) (count), ptr);                              \
+        (type*) ptr;                                                               \
+    })
+
+#else//#ifdef LM_DEBUG_MEM_DETAILS_JSON
+
+#define _LM_ALLOC(type)                                                   \
+    ({                                                                    \
+        type* ptr = (type*) lm__alloc(sizeof(type));                      \
+        printf("alloc: " #type " (%zu) bytes @ %p\n", sizeof(type), ptr); \
+        ptr;                                                              \
+    })
+
+#define _LM_CALLOC(type, size)                                                        \
+    ({                                                                                \
+        type* ptr = (type*) lm__calloc(sizeof(type), size);                           \
+        printf("alloc: " #type " (%zu) bytes * %zu @ %p\n", sizeof(type), size, ptr); \
+        ptr;                                                                          \
+    })
+
+#define _LM_FREE(ptr)               \
+    ({                              \
+        printf("free: %p \n", ptr); \
+        lm__free(ptr);              \
+    })
+
+#define _LM_ALLOC_ARRAY(type, count)                                                   \
+    ({                                                                                 \
+        type* ptr = (type*) lm__alloc(sizeof(type) * count);                           \
+        printf("alloc: " #type " (%zu) bytes * %zu @ %p\n", sizeof(type), count, ptr); \
+        ptr;                                                                           \
+    })
+
+#endif//#ifdef LM_DEBUG_MEM_DETAILS_JSON
 
 #else
+
+#warning statement extension feature not supported, defaulting to no log output.
+
+#define _LM_ALLOC(type) (type*) lm__alloc(sizeof(type))
+#define _LM_CALLOC(type, size) (type*) lm__calloc(sizeof(type), size)
+#define _LM_FREE(ptr) lm__free(ptr)
+#define _LM_ALLOC_ARRAY(type, count) (type*) lm__alloc(sizeof(type) * count)
+
+#endif//#ifdef _LM_HAS_STATEMENT_EXTENSION
+
+#else//#if defined(LM_DEBUG) && defined(LM_DEBUG_MEM_DETAILS)
 
 
 #define _LM_ALLOC(type) (type*) lm__alloc(sizeof(type))
@@ -117,7 +197,7 @@ void lm__free(void* ptr);
 #define _LM_FREE(ptr) lm__free(ptr)
 #define _LM_ALLOC_ARRAY(type, count) (type*) lm__alloc(sizeof(type) * count)
 
-#endif
+#endif//#if defined(LM_DEBUG) && defined(LM_DEBUG_MEM_DETAILS)
 
 lm_bool lm__alloc_counter_is_zero();
 
