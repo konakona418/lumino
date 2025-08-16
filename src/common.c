@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LM_DEBUG
-
 #ifdef LM_DEBUG
 typedef struct lm__alloc_counter_s {
     size_t alloc_count;
@@ -29,12 +27,24 @@ lm_bool lm__alloc_counter_is_zero() {
 
 void* lm__alloc(size_t size) {
     lm__alloc_counter_inc();
+#ifndef LM_DEBUG_MEM_DETAILS
     return malloc(size);
+#else
+    void* ptr = malloc(size);
+    printf("%p\n", ptr);
+    return ptr;
+#endif
 }
 
 void* lm__calloc(size_t type_size, size_t size) {
     lm__alloc_counter_inc();
+#ifndef LM_DEBUG_MEM_DETAILS
     return calloc(type_size, size);
+#else
+    void* ptr = calloc(type_size, size);
+    printf("%p", ptr);
+    return ptr;
+#endif
 }
 
 void lm__free(void* ptr) {
@@ -61,7 +71,10 @@ void lm__free(void* ptr) { free(ptr); }
 #endif
 
 lm_string_t* lm_string_alloc(const char* data, size_t len) {
-    lm_string_t* str = (lm_string_t*) lm__alloc(sizeof(lm_string_t));
+    lm_string_t* str = _LM_ALLOC(lm_string_t);
+    lm__string_rc_internal_t* internal = _LM_ALLOC(lm__string_rc_internal_t);
+    internal->ref = 1;
+    str->internal = internal;
 
     size_t string_len;
     if (len > 0) {
@@ -73,7 +86,7 @@ lm_string_t* lm_string_alloc(const char* data, size_t len) {
 
     size_t string_capacity = string_len + 1;
 
-    str->data = (char*) lm__alloc(string_capacity);
+    str->data = _LM_ALLOC_ARRAY(char, string_capacity);
 
     memcpy(str->data, data, string_len);
     str->data[string_len] = '\0';
@@ -86,7 +99,10 @@ lm_string_t* lm_string_alloc(const char* data, size_t len) {
 
 
 lm_string_t* lm_string_from(char* allocated, size_t len) {
-    lm_string_t* str = lm__alloc(sizeof(lm_string_t));
+    lm_string_t* str = _LM_ALLOC(lm_string_t);
+    lm__string_rc_internal_t* internal = _LM_ALLOC(lm__string_rc_internal_t);
+    internal->ref = 1;
+    str->internal = internal;
 
     size_t string_len;
     if (len > 0) {
@@ -109,12 +125,34 @@ void lm_string_free(lm_string_t* str) {
         return;
     }
 
-    lm__free(str->data);
-    lm__free(str);
+    str->internal->ref--;
+    if (str->internal->ref == 0) {
+        _LM_FREE(str->internal);
+        _LM_FREE(str->data);
+    }
+
+    _LM_FREE(str);
+}
+
+lm_string_t* lm_string_copy(lm_string_t* str) {
+    return lm_string_alloc(str->data, str->length);
 }
 
 lm_string_t* lm_string_clone(lm_string_t* str) {
-    return lm_string_alloc(str->data, str->length);
+    lm_string_t* new_str = _LM_ALLOC(lm_string_t);
+    new_str->internal = str->internal;
+
+    new_str->data = str->data;
+    new_str->length = str->length;
+    new_str->capacity = str->capacity;
+
+    str->internal->ref++;
+
+    return new_str;
+}
+
+size_t lm_string_ref_count(lm_string_t* str) {
+    return str->internal->ref;
 }
 
 size_t lm_string_len(lm_string_t* str) {
@@ -151,7 +189,7 @@ char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid) {
 }
 
 void lm__error_vtbl_free(lm_error_t* error) {
-    lm__free(error);
+    _LM_FREE(error);
 }
 
 const char* lm__error_vtbl_what(lm_error_t* error) {
@@ -159,7 +197,7 @@ const char* lm__error_vtbl_what(lm_error_t* error) {
 }
 
 lm_error_t* lm_error_alloc(const char* msg) {
-    lm_error_t* error = lm__alloc(sizeof(lm_error_t));
+    lm_error_t* error = _LM_ALLOC(lm_error_t);
     lm__error_vtbl_t vtbl = {lm__error_vtbl_free, lm__error_vtbl_what};
     error->vtbl = vtbl;
 
@@ -187,7 +225,7 @@ void lm_error_free(lm_error_t* error) {
 
 
 lm_list_node_t* lm_list_node_alloc() {
-    lm_list_node_t* node = lm__alloc(sizeof(lm_list_node_t));
+    lm_list_node_t* node = _LM_ALLOC(lm_list_node_t);
     lm_list_node_init(node);
     return node;
 }
@@ -200,7 +238,7 @@ void lm_list_node_init(lm_list_node_t* node) {
 void lm_list_node_free(lm_list_node_t* node) {
     // _LM_ASSERT(node->next == NULL && node->prev == NULL, "node is not properly detached from list");
 
-    lm__free(node);
+    _LM_FREE(node);
 }
 
 void lm_list_add_head(lm_list_node_t* list, lm_list_node_t* node) {

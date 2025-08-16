@@ -74,11 +74,11 @@ const char* lm__parser_error_what(lm_error_t* error) {
 
 void lm__parser_error_free(lm_error_t* error) {
     lm_string_free(((lm_parser_error_t*) error)->msg);
-    lm__free(error);
+    _LM_FREE(error);
 }
 
 lm_parser_error_t* lm_parser_error_alloc(const char* msg, lm_parser_t* parser) {
-    lm_parser_error_t* parser_error = lm__alloc(sizeof(lm_lexer_error_t));
+    lm_parser_error_t* parser_error = _LM_ALLOC(lm_parser_error_t);
     parser_error->vtbl.free = lm__parser_error_free;
     parser_error->vtbl.what = lm__parser_error_what;
 
@@ -100,7 +100,7 @@ lm_parser_error_t* lm_parser_error_alloc(const char* msg, lm_parser_t* parser) {
 }
 
 lm_parser_t* lm_parser_alloc(lm_lexer_t* lexer) {
-    lm_parser_t* parser = lm__alloc(sizeof(lm_parser_t));
+    lm_parser_t* parser = _LM_ALLOC(lm_parser_t);
     parser->lexer = lexer;
 
     lm_list_node_init(&parser->block_scope_head);
@@ -113,20 +113,18 @@ lm_parser_t* lm_parser_alloc(lm_lexer_t* lexer) {
 void lm_parser_free(lm_parser_t* parser) {
     lm_list_iterate_safe(&parser->block_scope_head, lm__parser_block_scope_free_iterator, NULL);
 
-    lm__free(parser);
+    _LM_FREE(parser);
 }
 
 lm__ast_program_t* lm_parser_parse(lm_parser_t* parser) {
-    lm_list_node_t head;
-    lm_list_node_init(&head);
+    lm_list_node_t* head = lm_list_node_alloc();
 
     lm__parser_add_scope(parser, LM__PARSER_BLOCK_SCOPE_TYPE_PROGRAM);
 
     while (lm__parser_current(parser).type != LM_TOKEN_TYPE_TERMINATOR) {
         lm__ast_statement_t* statement = lm__parser_parse_statement(parser);
-        lm_list_node_init(&statement->list_node);
 
-        lm_list_add_tail(&head, &statement->list_node);
+        lm_list_add_tail(head, &statement->list_node);
     }
 
     lm__ast_program_t* program = lm__ast_program_alloc(head);

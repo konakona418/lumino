@@ -124,11 +124,11 @@ void lm__lexer_error_free(lm_error_t* error) {
     }
 
     lm_string_free(((lm_lexer_error_t*) error)->msg);
-    lm__free(error);
+    _LM_FREE(error);
 }
 
 lm_lexer_error_t* lm_lexer_error_alloc(const char* msg, lm__lexer_stats_t* stats) {
-    lm_lexer_error_t* lexer_error = lm__alloc(sizeof(lm_lexer_error_t));
+    lm_lexer_error_t* lexer_error = _LM_ALLOC(lm_lexer_error_t);
     lexer_error->vtbl.free = lm__lexer_error_free;
     lexer_error->vtbl.what = lm__lexer_error_what;
 
@@ -147,7 +147,7 @@ lm_lexer_error_t* lm_lexer_error_alloc(const char* msg, lm__lexer_stats_t* stats
 }
 
 lm_lexer_t* lm_lexer_alloc(const char* input, const char* file) {
-    lm_lexer_t* lexer = lm__alloc(sizeof(lm_lexer_t));
+    lm_lexer_t* lexer = _LM_ALLOC(lm_lexer_t);
     lexer->source = lm_string_alloc(input, 0);
     lexer->len = lm_string_len(lexer->source);
     lexer->pos = 0;
@@ -166,7 +166,7 @@ void lm_lexer_free(lm_lexer_t* lexer) {
 
     lm_string_free(lexer->source);
     lm_string_free(lexer->stats.file);
-    lm__free(lexer);
+    _LM_FREE(lexer);
 }
 
 void lm__lexer_emit_error(lm_lexer_t* lexer, const char* msg) {
@@ -408,9 +408,10 @@ lm_token_t lm__lexer_get_identifier_or_keyword(lm_lexer_t* lexer) {
     lm_string_t* identifier = lm_string_alloc(lexer->source->data + start_pos, lexer->pos - start_pos);
 
     if (lm__lexer_is_keyword(identifier)) {
-        return (lm_token_t){
-                lm__lexer_get_keyword_type(identifier),
-                identifier};
+        lm_token_type_t keyword_type = lm__lexer_get_keyword_type(identifier);
+        lm_string_free(identifier);
+
+        return (lm_token_t){keyword_type, NULL};
     }
 
     return (lm_token_t){LM_TOKEN_TYPE_IDENTIFIER, identifier};

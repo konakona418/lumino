@@ -43,17 +43,17 @@ void lm__ast_statement_free(lm__ast_statement_t* stmt);
 typedef struct lm__ast_program_s {
     LM_AST_STATEMENT_HEADER
 
-    lm_list_node_t stmts;
+    lm_list_node_t* stmts;
 } lm__ast_program_t;
 
-lm__ast_program_t* lm__ast_program_alloc(lm_list_node_t stmts);
+lm__ast_program_t* lm__ast_program_alloc(lm_list_node_t* stmts);
 
 void lm__ast_program_free(lm__ast_statement_t* stmt);
 
 typedef struct lm__ast_block_s {
     LM_AST_STATEMENT_HEADER
 
-    lm_list_node_t stmts;
+    lm_list_node_t* stmts;
 } lm__ast_block_t;
 
 typedef struct lm__ast_if_s {

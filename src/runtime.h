@@ -19,9 +19,6 @@ void lm__runtime_error_free(lm_error_t* error);
 
 lm_runtime_error_t* lm_runtime_error_alloc(const char* msg);
 
-typedef uint32_t lm_atom_t;
-#define LM_ATOM_NIL 0
-
 typedef struct lm__atom_hash_table_entry_s {
     lm_string_t* str;
     lm_atom_t atom;
@@ -83,7 +80,12 @@ typedef struct lm__stack_frame_var_cell_s {
     lm_list_node_t list_node;
 
     lm_value_t local_vars[LM_RUNTIME_STACK_CELL_SIZE];
+    size_t local_vars_count;
 } lm__stack_frame_var_cell_t;
+
+lm__stack_frame_var_cell_t* lm__stack_frame_var_cell_alloc();
+
+void lm__stack_frame_var_cell_free(lm__stack_frame_var_cell_t* cell);
 
 typedef struct lm__stack_frame_var_hash_entry_s {
     lm_atom_t key;
@@ -118,18 +120,20 @@ void lm__stack_frame_var_hash_table_set(lm__stack_frame_var_hash_table_t* table,
 
 typedef struct lm__stack_frame_s {
     lm_list_node_t list_node;
+    struct lm_context_s* context;
     uint8_t* return_address;
+
     lm_list_node_t var_cells_head;
     lm__stack_frame_var_hash_table_t var_hash_table;
 } lm__stack_frame_t;
 
-lm__stack_frame_t* lm__stack_frame_alloc(lm_runtime_t* runtime, uint8_t* return_address);
+lm__stack_frame_t* lm__stack_frame_alloc(struct lm_context_s* runtime, uint8_t* return_address);
 
 void lm__stack_frame_free(lm__stack_frame_t* frame);
 
-void lm__stack_frame_add_var(lm__stack_frame_t* frame, lm_string_t* name, lm_value_t* value);
+lm_value_t* lm__stack_frame_add_var(lm__stack_frame_t* frame, lm_atom_t name);
 
-lm_value_t* lm__stack_frame_get_var(lm__stack_frame_t* frame, lm_string_t* name);
+lm_value_t* lm__stack_frame_get_var(lm__stack_frame_t* frame, lm_atom_t name);
 
 typedef struct lm_context_s {
     lm_list_node_t list_node;
@@ -144,3 +148,7 @@ typedef struct lm_context_s {
 lm_context_t* lm_context_alloc(lm_runtime_t* runtime);
 
 void lm_context_free(lm_context_t* context);
+
+void lm__context_push_frame(lm_context_t* context, uint8_t* pc);
+
+void lm__context_pop_frame(lm_context_t* context);

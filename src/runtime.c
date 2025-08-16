@@ -139,6 +139,18 @@ void lm__runtime_detach_context(lm_runtime_t* runtime, lm_context_t* context) {
     lm_list_remove(&context->list_node);
 }
 
+lm__stack_frame_var_cell_t* lm__stack_frame_var_cell_alloc() {
+    return _LM_ALLOC(lm__stack_frame_var_cell_t);
+}
+
+void lm__stack_frame_var_cell_free(lm__stack_frame_var_cell_t* cell) {
+    _LM_FREE(cell);
+}
+
+void lm__stack_frame_var_cell_free_iterator(lm_list_node_t* node, void* ctx) {
+    lm__stack_frame_var_cell_free(lm_list_entry(node, lm__stack_frame_var_cell_t, list_node));
+}
+
 void lm__stack_frame_var_hash_table_init(lm__stack_frame_var_hash_table_t* table) {
     table->size = 0;
     table->capacity = _LM_RUNTIME_HASH_TABLE_INIT_SIZE;
@@ -198,9 +210,10 @@ void lm__stack_frame_var_hash_table_set(lm__stack_frame_var_hash_table_t* table,
     table->size++;
 }
 
-lm__stack_frame_t* lm__stack_frame_alloc(lm_runtime_t* runtime, uint8_t* return_address) {
+lm__stack_frame_t* lm__stack_frame_alloc(lm_context_t* context, uint8_t* return_address) {
     lm__stack_frame_t* frame = _LM_ALLOC(lm__stack_frame_t);
     frame->return_address = return_address;
+    frame->context = context;
     lm__stack_frame_var_hash_table_init(&frame->var_hash_table);
     lm_list_node_init(&frame->list_node);
     lm_list_node_init(&frame->var_cells_head);
@@ -209,8 +222,32 @@ lm__stack_frame_t* lm__stack_frame_alloc(lm_runtime_t* runtime, uint8_t* return_
 }
 
 void lm__stack_frame_free(lm__stack_frame_t* frame) {
+    lm_list_iterate_safe(&frame->var_cells_head, lm__stack_frame_var_cell_free_iterator, NULL);
     lm__stack_frame_var_hash_table_deinit(&frame->var_hash_table);
+
     _LM_FREE(frame);
+}
+
+lm_value_t* lm__stack_frame_add_var(lm__stack_frame_t* frame, lm_atom_t name) {
+    lm__stack_frame_var_cell_t* cell =
+            lm_list_entry(lm_list_tail(&frame->var_cells_head),
+                          lm__stack_frame_var_cell_t, list_node);
+
+    lm_value_t* value_ref = NULL;
+    if (cell->local_vars_count == LM_RUNTIME_STACK_CELL_SIZE) {
+        cell = lm__stack_frame_var_cell_alloc();
+        lm_list_add_tail(&cell->list_node, &frame->var_cells_head);
+        value_ref = &cell->local_vars[0];
+    } else {
+        value_ref = &cell->local_vars[cell->local_vars_count++];
+    }
+
+    lm__stack_frame_var_hash_table_set(&frame->var_hash_table, name, value_ref);
+    return value_ref;
+}
+
+lm_value_t* lm__stack_frame_get_var(lm__stack_frame_t* frame, lm_atom_t name) {
+    return lm__stack_frame_var_hash_table_get(&frame->var_hash_table, name);
 }
 
 lm_context_t* lm_context_alloc(lm_runtime_t* runtime) {
@@ -232,4 +269,17 @@ void lm_context_free(lm_context_t* context) {
 
     lm__runtime_detach_context(context->runtime, context);
     _LM_FREE(context);
+}
+
+void lm__context_push_frame(lm_context_t* context, uint8_t* pc) {
+    lm__stack_frame_t* frame = lm__stack_frame_alloc(context, pc);
+    lm_list_add_tail(&context->stack_frame_head, &frame->list_node);
+}
+
+void lm__context_pop_frame(lm_context_t* context) {
+    lm_list_node_t* tail = lm_list_tail(&context->stack_frame_head);
+    lm__stack_frame_t* frame = lm_list_entry(tail, lm__stack_frame_t, list_node);
+
+    lm_list_remove(tail);
+    lm__stack_frame_free(frame);
 }

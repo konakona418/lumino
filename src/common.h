@@ -2,6 +2,11 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#define LM_DEBUG
+#define LM_DEBUG_MEM_DETAILS
 
 #define _LM_ASSERT(_cond, _msg) (assert(((_msg) && (_cond))))
 #define _LM_ASSERT_NOT_NULL(_ptr, _msg) _LM_ASSERT((_ptr), _msg)
@@ -44,7 +49,13 @@ const char* lm_error_what(lm_error_t* error);
 
 void lm_error_free(lm_error_t* error);
 
+typedef struct lm__string_rc_internal_s {
+    size_t ref;
+} lm__string_rc_internal_t;
+
 typedef struct lm_string_s {
+    lm__string_rc_internal_t* internal;
+
     char* data;
     size_t length;
     size_t capacity;
@@ -61,7 +72,11 @@ lm_string_t* lm_string_from(char* allocated, size_t len);
 
 void lm_string_free(lm_string_t* str);
 
+lm_string_t* lm_string_copy(lm_string_t* str);
+
 lm_string_t* lm_string_clone(lm_string_t* str);
+
+size_t lm_string_ref_count(lm_string_t* str);
 
 size_t lm_string_len(lm_string_t* str);
 
@@ -73,6 +88,9 @@ char lm_string_get(lm_string_t* str, size_t index);
 
 char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid);
 
+typedef uint32_t lm_atom_t;
+#define LM_ATOM_NIL 0
+
 #define lm_move(_p_ptr_dest, _p_ptr_src) ({ *_p_ptr_dest = *_p_ptr_src; *_p_ptr_src = NULL; })
 
 void* lm__alloc(size_t size);
@@ -81,10 +99,25 @@ void* lm__calloc(size_t type_size, size_t size);
 
 void lm__free(void* ptr);
 
+
+#if defined(LM_DEBUG) && defined(LM_DEBUG_MEM_DETAILS)
+
+#define _LM_ALLOC(type) (printf("alloc: " #type " (%zu) bytes @ ", sizeof(type)), (type*) lm__alloc(sizeof(type)))
+#define _LM_CALLOC(type, size) (printf("alloc: " #type " (%zu) bytes @ ", sizeof(type)), (type*) lm__calloc(sizeof(type), size))
+#define _LM_FREE(ptr) (printf("free: %p \n", ptr), lm__free(ptr))
+#define _LM_ALLOC_ARRAY(type, count)                                       \
+    (printf("alloc: " #type " (%zu) bytes * %zu @ ", sizeof(type), count), \
+     (type*) lm__alloc(sizeof(type) * count))
+
+#else
+
+
 #define _LM_ALLOC(type) (type*) lm__alloc(sizeof(type))
 #define _LM_CALLOC(type, size) (type*) lm__calloc(sizeof(type), size)
 #define _LM_FREE(ptr) lm__free(ptr)
 #define _LM_ALLOC_ARRAY(type, count) (type*) lm__alloc(sizeof(type) * count)
+
+#endif
 
 lm_bool lm__alloc_counter_is_zero();
 
