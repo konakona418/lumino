@@ -25,21 +25,28 @@ typedef enum lm__parser_block_scope_type_e {
     LM__PARSER_BLOCK_SCOPE_TYPE_BLOCK,
 } lm__parser_block_scope_type_t;
 
-typedef struct lm__parser_block_scope_variable_s {
-    lm_list_node_t list_node;
+typedef struct lm__parser_block_scope_variable_table_s {
+    size_t size;
+    size_t capacity;
 
-    const lm_string_t* name;
-} lm__parser_block_scope_variable_t;
+    lm_string_t** entries;
+} lm__parser_block_scope_variable_table_t;
 
-lm__parser_block_scope_variable_t* lm__parser_block_scope_variable_alloc(const lm_string_t* name);
+void lm__parser_block_scope_variable_table_init(lm__parser_block_scope_variable_table_t* ht);
 
-void lm__parser_block_scope_variable_free(lm__parser_block_scope_variable_t* var);
+void lm__parser_block_scope_variable_table_deinit(lm__parser_block_scope_variable_table_t* ht);
+
+void lm__parser_block_scope_variable_table_realloc(lm__parser_block_scope_variable_table_t* ht);
+
+void lm__parser_block_scope_variable_table_add_entry(lm__parser_block_scope_variable_table_t* ht, const lm_string_t* str);
+
+lm_bool lm__parser_block_scope_variable_table_contains_entry(lm__parser_block_scope_variable_table_t* ht, const lm_string_t* str);
 
 typedef struct lm__parser_block_scope_s {
     lm_list_node_t list_node;
 
     lm__parser_block_scope_type_t scope_type;
-    lm_list_node_t variables_head;
+    lm__parser_block_scope_variable_table_t variables;
 } lm__parser_block_scope_t;
 
 lm__parser_block_scope_t* lm__parser_block_scope_alloc(lm__parser_block_scope_type_t scope_type);

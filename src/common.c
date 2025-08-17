@@ -122,11 +122,11 @@ void lm_string_free(lm_string_t* str) {
     _LM_FREE(str);
 }
 
-lm_string_t* lm_string_copy(lm_string_t* str) {
+lm_string_t* lm_string_copy(const lm_string_t* str) {
     return lm_string_alloc(str->data, str->length);
 }
 
-lm_string_t* lm_string_clone(lm_string_t* str) {
+lm_string_t* lm_string_clone(const lm_string_t* str) {
     lm_string_t* new_str = _LM_ALLOC(lm_string_t);
     new_str->internal = str->internal;
 
@@ -139,15 +139,15 @@ lm_string_t* lm_string_clone(lm_string_t* str) {
     return new_str;
 }
 
-size_t lm_string_ref_count(lm_string_t* str) {
+size_t lm_string_ref_count(const lm_string_t* str) {
     return str->internal->ref;
 }
 
-size_t lm_string_len(lm_string_t* str) {
+size_t lm_string_len(const lm_string_t* str) {
     return str->length;
 }
 
-size_t lm_string_cap(lm_string_t* str) {
+size_t lm_string_cap(const lm_string_t* str) {
     return str->capacity;
 }
 
@@ -155,12 +155,12 @@ lm_bool lm_string_equal(const lm_string_t* lhs, const lm_string_t* rhs) {
     return strcmp(lhs->data, rhs->data) == 0;
 }
 
-char lm_string_get(lm_string_t* str, size_t index) {
+char lm_string_get(const lm_string_t* str, size_t index) {
     _LM_ASSERT(index < str->capacity, "string index out of bounds");
     return str->data[index];
 }
 
-char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid) {
+char lm_string_get_safe(const lm_string_t* str, size_t index, lm_bool* is_valid) {
     if (index < str->capacity) {
         if (is_valid) {
             *is_valid = LM_TRUE;
@@ -174,6 +174,19 @@ char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid) {
     }
 
     return '\0';
+}
+
+uint32_t lm_string_hash(const lm_string_t* str) {
+    const char* data = str->data;
+    size_t len = lm_string_len(str);
+
+    uint32_t h = 2166136261u;
+    for (size_t i = 0; i < len; i++) {
+        h ^= (unsigned char) data[i];
+        h *= 16777619u;
+    }
+
+    return h;
 }
 
 void lm__error_vtbl_free(lm_error_t* error) {

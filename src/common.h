@@ -81,21 +81,23 @@ lm_string_t* lm_string_from(char* allocated, size_t len);
 
 void lm_string_free(lm_string_t* str);
 
-lm_string_t* lm_string_copy(lm_string_t* str);
+lm_string_t* lm_string_copy(const lm_string_t* str);
 
-lm_string_t* lm_string_clone(lm_string_t* str);
+lm_string_t* lm_string_clone(const lm_string_t* str);
 
-size_t lm_string_ref_count(lm_string_t* str);
+size_t lm_string_ref_count(const lm_string_t* str);
 
-size_t lm_string_len(lm_string_t* str);
+size_t lm_string_len(const lm_string_t* str);
 
-size_t lm_string_cap(lm_string_t* str);
+size_t lm_string_cap(const lm_string_t* str);
 
 lm_bool lm_string_equal(const lm_string_t* lhs, const lm_string_t* rhs);
 
-char lm_string_get(lm_string_t* str, size_t index);
+char lm_string_get(const lm_string_t* str, size_t index);
 
-char lm_string_get_safe(lm_string_t* str, size_t index, lm_bool* is_valid);
+char lm_string_get_safe(const lm_string_t* str, size_t index, lm_bool* is_valid);
+
+uint32_t lm_string_hash(const lm_string_t* str);
 
 typedef uint32_t lm_atom_t;
 #define LM_ATOM_NIL 0
@@ -180,12 +182,14 @@ void lm__free(void* ptr);
 
 #else
 
-#warning statement extension feature not supported, defaulting to no log output.
+#warning statement extension feature not supported, defaulting to non-verbose log output.
 
-#define _LM_ALLOC(type) (type*) lm__alloc(sizeof(type))
-#define _LM_CALLOC(type, size) (type*) lm__calloc(sizeof(type), size)
-#define _LM_FREE(ptr) lm__free(ptr)
-#define _LM_ALLOC_ARRAY(type, count) (type*) lm__alloc(sizeof(type) * count)
+#define _LM_ALLOC(type) (printf("alloc: " #type " (%zu) bytes\n", sizeof(type)), (type*) lm__alloc(sizeof(type)))
+#define _LM_CALLOC(type, size) (printf("alloc: " #type " (%zu) bytes\n", sizeof(type)), (type*) lm__calloc(sizeof(type), size))
+#define _LM_FREE(ptr) (printf("free: %p\n", ptr), lm__free(ptr))
+#define _LM_ALLOC_ARRAY(type, count)                                      \
+    (printf("alloc: " #type " (%zu) bytes * %zu\n", sizeof(type), count), \
+     (type*) lm__alloc(sizeof(type) * count))
 
 #endif//#ifdef _LM_HAS_STATEMENT_EXTENSION
 

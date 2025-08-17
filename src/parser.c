@@ -4,26 +4,85 @@
 #include <string.h>
 
 
-lm__parser_block_scope_variable_t* lm__parser_block_scope_variable_alloc(const lm_string_t* name) {
-    lm__parser_block_scope_variable_t* var = _LM_ALLOC(lm__parser_block_scope_variable_t);
-    var->name = name;
-    lm_list_node_init(&var->list_node);
-    return var;
+#define _LM_BLOCK_SCOPE_VARIABLE_TABLE_INIT_SIZE 4
+#define _LM_BLOCK_SCOPE_VARIABLE_TABLE_LOAD_FACTOR 0.7
+#define _LM_BLOCK_SCOPE_VARIABLE_TABLE_GROWTH_FACTOR 2
+
+void lm__parser_block_scope_variable_table_init(lm__parser_block_scope_variable_table_t* ht) {
+    ht->size = 0;
+    ht->capacity = _LM_BLOCK_SCOPE_VARIABLE_TABLE_INIT_SIZE;
+    ht->entries = _LM_CALLOC(lm_string_t*, ht->capacity);
 }
 
-void lm__parser_block_scope_variable_free_iterator(lm_list_node_t* node, void* ctx) {
-    lm__parser_block_scope_variable_free(lm_list_entry(node, lm__parser_block_scope_variable_t, list_node));
+void lm__parser_block_scope_variable_table_deinit(lm__parser_block_scope_variable_table_t* ht) {
+    for (size_t i = 0; i < ht->capacity; ++i) {
+        if (ht->entries[i] != NULL) {
+            lm_string_free(ht->entries[i]);
+        }
+    }
+    _LM_FREE(ht->entries);
 }
 
-void lm__parser_block_scope_variable_free(lm__parser_block_scope_variable_t* var) {
-    _LM_FREE(var);
+void lm__parser_block_scope_variable_table_realloc(lm__parser_block_scope_variable_table_t* ht) {
+    size_t old_capacity = ht->capacity;
+    lm_string_t** old_strings = ht->entries;
+
+    ht->capacity *= _LM_BLOCK_SCOPE_VARIABLE_TABLE_GROWTH_FACTOR;
+    ht->entries = _LM_CALLOC(lm_string_t*, ht->capacity);
+
+    for (size_t i = 0; i < old_capacity; ++i) {
+        if (old_strings[i] != NULL) {
+            lm__parser_block_scope_variable_table_add_entry(ht, old_strings[i]);
+            lm_string_free(old_strings[i]);
+        }
+    }
+
+    _LM_FREE(old_strings);
+}
+
+void lm__parser_block_scope_variable_table_add_entry(lm__parser_block_scope_variable_table_t* ht, const lm_string_t* str) {
+    if (ht->size + 1 >= ht->capacity * _LM_BLOCK_SCOPE_VARIABLE_TABLE_LOAD_FACTOR) {
+        lm__parser_block_scope_variable_table_realloc(ht);
+    }
+
+    uint32_t hash = lm_string_hash(str);
+    size_t mask = ht->capacity - 1;
+    size_t idx = hash & mask;
+
+    for (;;) {
+        if (ht->entries[idx] == NULL) {
+            ht->entries[idx] = lm_string_clone(str);
+            ht->size++;
+
+            break;
+        } else if (lm_string_equal(ht->entries[idx], str)) {
+            break;
+        }
+        idx = (idx + 1) & mask;
+    }
+}
+
+lm_bool lm__parser_block_scope_variable_table_contains_entry(lm__parser_block_scope_variable_table_t* ht, const lm_string_t* str) {
+    uint32_t hash = lm_string_hash(str);
+    size_t mask = ht->capacity - 1;
+    size_t idx = hash & mask;
+
+    for (;;) {
+        if (ht->entries[idx] == NULL) {
+            return LM_FALSE;
+        }
+        if (lm_string_equal(ht->entries[idx], str)) {
+            return LM_TRUE;
+        }
+        idx = (idx + 1) & mask;
+    }
 }
 
 lm__parser_block_scope_t* lm__parser_block_scope_alloc(lm__parser_block_scope_type_t scope_type) {
     lm__parser_block_scope_t* scope = _LM_ALLOC(lm__parser_block_scope_t);
     scope->scope_type = scope_type;
     lm_list_node_init(&scope->list_node);
-    lm_list_node_init(&scope->variables_head);
+    lm__parser_block_scope_variable_table_init(&scope->variables);
     return scope;
 }
 
@@ -32,40 +91,16 @@ void lm__parser_block_scope_free_iterator(lm_list_node_t* node, void* ctx) {
 }
 
 void lm__parser_block_scope_free(lm__parser_block_scope_t* scope) {
-    lm_list_iterate_safe(&scope->variables_head, lm__parser_block_scope_variable_free_iterator, NULL);
+    lm__parser_block_scope_variable_table_deinit(&scope->variables);
     _LM_FREE(scope);
 }
 
 void lm__parser_block_scope_add_variable(lm__parser_block_scope_t* scope, const lm_string_t* name) {
-    lm__parser_block_scope_variable_t* var = lm__parser_block_scope_variable_alloc(name);
-    lm_list_add_tail(&scope->variables_head, &var->list_node);
-}
-
-struct lm__parser_block_scope_find_var_data {
-    lm_bool* has_var;
-    const lm_string_t* name;
-};
-
-void lm__parser_block_scope_has_variable_compare_iterator(lm_list_node_t* node, void* ctx) {
-    lm__parser_block_scope_variable_t* var = lm_list_entry(node, lm__parser_block_scope_variable_t, list_node);
-    struct lm__parser_block_scope_find_var_data* data = ctx;
-
-    if (lm_string_equal(var->name, data->name)) {
-        *data->has_var = LM_TRUE;
-    }
+    lm__parser_block_scope_variable_table_add_entry(&scope->variables, name);
 }
 
 lm_bool lm__parser_block_scope_has_variable(lm__parser_block_scope_t* scope, const lm_string_t* name) {
-    struct lm__parser_block_scope_find_var_data data;
-
-    lm_bool has_var = LM_FALSE;
-    data.name = name;
-    data.has_var = &has_var;
-
-    lm_list_iterate(&scope->variables_head,
-                    lm__parser_block_scope_has_variable_compare_iterator, &data);
-
-    return has_var;
+    return lm__parser_block_scope_variable_table_contains_entry(&scope->variables, name);
 }
 
 const char* lm__parser_error_what(lm_error_t* error) {
@@ -159,9 +194,14 @@ void lm__parser_emit_scope_symbol(lm_parser_t* parser, const lm_string_t* name) 
     lm__parser_block_scope_add_variable(scope, name);
 }
 
+struct lm__parser_find_var_data {
+    lm_bool* has_var;
+    const lm_string_t* name;
+};
+
 lm_bool lm__parser_is_symbol_defined_scope_rev_iterator(lm_list_node_t* node, void* ctx) {
     lm__parser_block_scope_t* scope = lm_list_entry(node, lm__parser_block_scope_t, list_node);
-    struct lm__parser_block_scope_find_var_data* data = ctx;
+    struct lm__parser_find_var_data* data = ctx;
 
     if (lm__parser_block_scope_has_variable(scope, data->name)) {
         *data->has_var = LM_TRUE;
@@ -172,7 +212,7 @@ lm_bool lm__parser_is_symbol_defined_scope_rev_iterator(lm_list_node_t* node, vo
 }
 
 lm_bool lm__parser_is_symbol_defined(lm_parser_t* parser, const lm_string_t* name) {
-    struct lm__parser_block_scope_find_var_data data;
+    struct lm__parser_find_var_data data;
     lm_bool has_var = LM_FALSE;
     data.has_var = &has_var;
     data.name = name;
@@ -482,6 +522,8 @@ lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser) {
                 int buf_size = snprintf(NULL, 0, "undefined symbol: %s", token.value->data);
                 char buf[buf_size + 1];
                 snprintf(buf, buf_size + 1, "undefined symbol: %s", token.value->data);
+
+                lm_string_free(token.value);
                 lm__parser_emit_error(parser, buf);
             } else {
                 expr = _LM_CAST(lm__ast_expression_t,
