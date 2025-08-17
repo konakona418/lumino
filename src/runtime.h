@@ -28,21 +28,14 @@ typedef struct lm__atom_hash_table_entry_s {
 typedef struct lm__atom_hash_table_s {
     lm__atom_hash_table_entry_t* entries;
 
+    size_t* atom_mapping;
+
     size_t size;
     size_t capacity;
 } lm__atom_hash_table_t;
 
 static uint32_t lm__atom_hash_table_hash(lm_string_t* str) {
-    const char* data = str->data;
-    size_t len = lm_string_len(str);
-
-    uint32_t h = 2166136261u;
-    for (size_t i = 0; i < len; i++) {
-        h ^= (unsigned char) data[i];
-        h *= 16777619u;
-    }
-
-    return h;
+    return lm_string_hash(str);
 }
 
 void lm__atom_hash_table_init(lm__atom_hash_table_t* table);
@@ -53,7 +46,7 @@ void lm__atom_hash_table_realloc(lm__atom_hash_table_t* table);
 
 lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, lm_string_t* str);
 
-lm_string_t* lm__atom_hash_table_lookup(lm__atom_hash_table_t* table, lm_atom_t atom);
+const lm_string_t* lm__atom_hash_table_lookup(lm__atom_hash_table_t* table, lm_atom_t atom);
 
 struct lm_context_s;
 

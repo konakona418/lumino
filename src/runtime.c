@@ -34,6 +34,7 @@ void lm__atom_hash_table_init(lm__atom_hash_table_t* table) {
     table->size = 0;
     table->capacity = _LM_RUNTIME_HASH_TABLE_INIT_SIZE;
     table->entries = _LM_CALLOC(lm__atom_hash_table_entry_t, table->capacity);
+    table->atom_mapping = _LM_CALLOC(size_t, table->capacity);
 }
 
 void lm__atom_hash_table_deinit(lm__atom_hash_table_t* table) {
@@ -43,6 +44,7 @@ void lm__atom_hash_table_deinit(lm__atom_hash_table_t* table) {
         }
     }
 
+    _LM_FREE(table->atom_mapping);
     _LM_FREE(table->entries);
 }
 
@@ -69,6 +71,9 @@ lm_atom_t lm__atom_hash_table_intern_impl(lm__atom_hash_table_t* table, lm_strin
                 *found = LM_FALSE;
             }
 
+            _LM_ASSERT(atom < table->capacity, "atom out of range");
+            table->atom_mapping[atom] = idx;
+
             return atom;
         } else if (lm_string_equal(table->entries[idx].str, str)) {
             if (found) {
@@ -85,9 +90,11 @@ lm_atom_t lm__atom_hash_table_intern_impl(lm__atom_hash_table_t* table, lm_strin
 void lm__atom_hash_table_realloc(lm__atom_hash_table_t* table) {
     size_t old_capacity = table->capacity;
     lm__atom_hash_table_entry_t* old_entries = table->entries;
+    size_t* old_atom_mapping = table->atom_mapping;
 
     table->capacity *= _LM_RUNTIME_HASH_TABLE_RESIZE_FACTOR;
     table->entries = _LM_CALLOC(lm__atom_hash_table_entry_t, table->capacity);
+    table->atom_mapping = _LM_CALLOC(size_t, table->capacity);
 
     for (size_t i = 0; i < old_capacity; ++i) {
         if (old_entries[i].occupied) {
@@ -95,6 +102,7 @@ void lm__atom_hash_table_realloc(lm__atom_hash_table_t* table) {
         }
     }
 
+    _LM_FREE(old_atom_mapping);
     _LM_FREE(old_entries);
 }
 
@@ -115,12 +123,15 @@ lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, lm_string_t* 
     return atom;
 }
 
-lm_string_t* lm__atom_hash_table_lookup(lm__atom_hash_table_t* table, lm_atom_t atom) {
-    if (atom >= table->capacity || !table->entries[atom].occupied) {
+const lm_string_t* lm__atom_hash_table_lookup(lm__atom_hash_table_t* table, lm_atom_t atom) {
+    size_t mapped = table->atom_mapping[atom];
+    _LM_ASSERT(mapped < table->capacity, "atom out of range");
+
+    if (mapped >= table->capacity || !table->entries[mapped].occupied) {
         return NULL;
     }
 
-    return table->entries[atom].str;
+    return table->entries[mapped].str;
 }
 
 lm_runtime_t* lm_runtime_alloc() {
