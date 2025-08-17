@@ -168,3 +168,5 @@ void lm__byte_code_generator_emit_i32(lm__byte_code_generator_t* generator, int3
 void lm__byte_code_generator_emit_f32(lm__byte_code_generator_t* generator, float value);
 
 void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_atom_t atom);
+
+void lm_print_byte_code(uint8_t* byte_code);

@@ -351,3 +351,183 @@ void lm__byte_code_generator_emit_f32(lm__byte_code_generator_t* generator, floa
 void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_atom_t atom) {
     lm__byte_array_push_u32(generator->array, &atom);
 }
+
+void lm_print_byte_code(uint8_t* byte_code) {
+    uint8_t* idx = byte_code;
+    while (*idx != LM__OPCODE_HALT) {
+        switch ((lm__opcode_value_t) *idx) {
+            case LM__OPCODE_NOP: {
+                printf("NOP\n");
+                idx++;
+                break;
+            }
+            case LM__OPCODE_HALT: {
+                printf("HALT\n");
+                idx++;
+                break;
+            }
+            case LM__PUSH: {
+                printf("PUSH\n");
+                idx++;
+                break;
+            }
+            case LM__POP: {
+                printf("POP\n");
+                idx++;
+                break;
+            }
+            case LM__LOAD_UNDEFINED: {
+                printf("LOAD_UNDEFINED\n");
+                idx++;
+                break;
+            }
+            case LM__LOAD_NULL: {
+                printf("LOAD_NULL\n");
+                idx++;
+                break;
+            }
+            case LM__LOAD_BOOL: {
+                printf("LOAD_BOOL ");
+                idx++;
+
+                if (*_LM_CAST(lm_bool, idx)) {
+                    printf("[true]\n");
+                } else {
+                    printf("[false]\n");
+                }
+                idx++;
+                break;
+            }
+            case LM__LOAD_INT: {
+                printf("LOAD_INT ");
+                idx++;
+
+                printf("[%d]\n", *_LM_CAST(lm_int, idx));
+                idx += sizeof(lm_int);
+                break;
+            }
+            case LM__LOAD_FLOAT: {
+                printf("LOAD_FLOAT ");
+                idx++;
+
+                printf("[%f]\n", *_LM_CAST(lm_float, idx));
+                idx += sizeof(lm_float);
+                break;
+            }
+            case LM__LOAD_STRING: {
+                printf("LOAD_STRING ");
+                idx++;
+
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
+                idx += sizeof(lm_atom_t);
+                break;
+            }
+            case LM__DECL_VAR: {
+                printf("DECL_VAR ");
+                idx++;
+
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
+                idx += sizeof(lm_atom_t);
+                break;
+            }
+            case LM__LOAD_VAR: {
+                printf("LOAD_VAR ");
+                idx++;
+
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
+                idx += sizeof(lm_atom_t);
+                break;
+            }
+            case LM__STORE_VAR: {
+                printf("STORE_VAR ");
+                idx++;
+
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
+                idx += sizeof(lm_atom_t);
+                break;
+            }
+            case LM__OP_ADD: {
+                printf("OP_ADD\n");
+                idx++;
+                break;
+            }
+            case LM__OP_SUB: {
+                printf("OP_SUB\n");
+                idx++;
+                break;
+            }
+            case LM__OP_MUL: {
+                printf("OP_MUL\n");
+                idx++;
+                break;
+            }
+            case LM__OP_DIV: {
+                printf("OP_DIV\n");
+                idx++;
+                break;
+            }
+            case LM__OP_MOD: {
+                printf("OP_MOD\n");
+                idx++;
+                break;
+            }
+            case LM__OP_AND: {
+                printf("OP_AND\n");
+                idx++;
+                break;
+            }
+            case LM__OP_OR: {
+                printf("OP_OR\n");
+                idx++;
+                break;
+            }
+            case LM__OP_NEG: {
+                printf("OP_NEG\n");
+                idx++;
+                break;
+            }
+            case LM__OP_NOT: {
+                printf("OP_NOT\n");
+                idx++;
+                break;
+            }
+            case LM__OP_EQ: {
+                printf("OP_EQ\n");
+                idx++;
+                break;
+            }
+            case LM__OP_NEQ: {
+                printf("OP_NEQ\n");
+                idx++;
+                break;
+            }
+            case LM__OP_LT: {
+                printf("OP_LT\n");
+                idx++;
+                break;
+            }
+            case LM__OP_LTE: {
+                printf("OP_LTE\n");
+                idx++;
+                break;
+            }
+            case LM__OP_GT: {
+                printf("OP_GT\n");
+                idx++;
+                break;
+            }
+            case LM__OP_GTE: {
+                printf("OP_GTE\n");
+                idx++;
+                break;
+            }
+            case LM__OP_JMP:
+            case LM__OP_JMP_IF_FALSE:
+            case LM__OP_JMP_IF_TRUE:
+            case LM__OP_CALL:
+            case LM__OP_RET:
+                _LM_ASSERT(0, "not implemented");
+                break;
+        }
+    }
+}

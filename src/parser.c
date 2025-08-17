@@ -537,6 +537,8 @@ lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser) {
                 expr = _LM_CAST(lm__ast_expression_t,
                                 lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_INT,
                                                            (lm__ast_literal_expr_data_t){.int_val = int_val}));
+            } else {
+                lm__parser_emit_error(parser, "not a valid int literal");
             }
             lm_string_free(token.value);
             break;
@@ -547,6 +549,8 @@ lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser) {
                 expr = _LM_CAST(lm__ast_expression_t,
                                 lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_INT,
                                                            (lm__ast_literal_expr_data_t){.float_val = float_val}));
+            } else {
+                lm__parser_emit_error(parser, "not a valid float literal");
             }
             lm_string_free(token.value);
             break;
