@@ -101,7 +101,20 @@ static uint8_t* lm__byte_array_data(lm__byte_array_t* array);
 
 static size_t lm__byte_array_size(lm__byte_array_t* array);
 
+typedef struct lm_byte_code_error_s {
+    LM_ERROR_HEADER
+    lm_string_t* msg;
+} lm_byte_code_error_t;
+
+const char* lm__byte_code_error_what(lm_error_t* error);
+
+void lm__byte_code_error_free(lm_error_t* error);
+
+lm_byte_code_error_t* lm__byte_code_error_alloc(const char* msg);
+
 typedef lm_atom_t (*lm__byte_code_generator_intern_string_pfn)(lm_string_t*, void* ctx);
+
+typedef void (*lm__byte_code_generator_error_handler_pfn)(lm_error_t*);
 
 typedef struct lm__byte_code_generator_intern_string_ctx_s {
     lm__byte_code_generator_intern_string_pfn pfn;
@@ -113,7 +126,10 @@ typedef struct lm__byte_code_generator_s {
     lm__ast_statement_t* program;
 
     lm__byte_code_generator_intern_string_ctx_t intern_string_ctx;
+    lm__byte_code_generator_error_handler_pfn error_handler;
 } lm__byte_code_generator_t;
+
+void lm__byte_code_generator_emit_error(lm__byte_code_generator_t* generator, const char* msg);
 
 lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator_intern_string_ctx_t intern_string_ctx);
 
@@ -127,11 +143,25 @@ void lm__byte_code_generator_generate_declaration(lm__byte_code_generator_t* gen
 
 void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
 
+void lm__byte_code_generator_generate_lvalue_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
+
+void lm__byte_code_generator_generate_var_access_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
+
+void lm__byte_code_generator_generate_assign_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
+
+void lm__byte_code_generator_generate_binary_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
+
+void lm__byte_code_generator_generate_unary_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
+
+void lm__byte_code_generator_generate_literal_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
+
 void lm__byte_code_generator_free(lm__byte_code_generator_t* generator);
 
 lm_atom_t lm__byte_code_generator_alloc_atom(lm__byte_code_generator_t* generator, lm_string_t* str);
 
 void lm__byte_code_generator_emit(lm__byte_code_generator_t* generator, lm__opcode_value_t opcode);
+
+void lm__byte_code_generator_emit_byte(lm__byte_code_generator_t* generator, uint8_t value);
 
 void lm__byte_code_generator_emit_i32(lm__byte_code_generator_t* generator, int32_t value);
 

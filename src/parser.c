@@ -531,29 +531,51 @@ lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser) {
             }
             break;
         }
-        case LM_TOKEN_TYPE_NUMBER_LITERAL: {
-            expr = _LM_CAST(lm__ast_expression_t,
-                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_INT, token.value));
+        case LM_TOKEN_TYPE_INT_LITERAL: {
+            lm_int int_val;
+            if (lm_string_stoi(token.value, &int_val)) {
+                expr = _LM_CAST(lm__ast_expression_t,
+                                lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_INT,
+                                                           (lm__ast_literal_expr_data_t){.int_val = int_val}));
+            }
+            lm_string_free(token.value);
+            break;
+        }
+        case LM_TOKEN_TYPE_FLOAT_LITERAL: {
+            lm_float float_val;
+            if (lm_string_stof(token.value, &float_val)) {
+                expr = _LM_CAST(lm__ast_expression_t,
+                                lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_INT,
+                                                           (lm__ast_literal_expr_data_t){.float_val = float_val}));
+            }
+            lm_string_free(token.value);
             break;
         }
         case LM_TOKEN_TYPE_STRING_LITERAL: {
+            lm_string_t* sub = lm_string_substr(token.value, 1,
+                                                lm_string_len(token.value - 2));
+            lm_string_free(token.value);
+
             expr = _LM_CAST(lm__ast_expression_t,
-                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_STRING, token.value));
+                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_STRING,
+                                                       (lm__ast_literal_expr_data_t){.str_val = sub}));
             break;
         }
         case LM_TOKEN_TYPE_KEYWORD_TRUE: {
             expr = _LM_CAST(lm__ast_expression_t,
-                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_BOOL, token.value));
+                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_BOOL,
+                                                       (lm__ast_literal_expr_data_t){.bool_val = LM_TRUE}));
             break;
         }
         case LM_TOKEN_TYPE_KEYWORD_FALSE: {
             expr = _LM_CAST(lm__ast_expression_t,
-                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_BOOL, token.value));
+                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_BOOL,
+                                                       (lm__ast_literal_expr_data_t){.bool_val = LM_FALSE}));
             break;
         }
         case LM_TOKEN_TYPE_KEYWORD_NULL: {
             expr = _LM_CAST(lm__ast_expression_t,
-                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_NULL, token.value));
+                            lm__ast_literal_expr_alloc(LM_AST_LITERAL_EXPR_TYPE_NULL, (lm__ast_literal_expr_data_t){}));
             break;
         }
         case LM_TOKEN_TYPE_L_PARENTHESIS: {

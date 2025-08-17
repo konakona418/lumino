@@ -9,12 +9,20 @@
 #define LM_DEBUG_MEM_DETAILS
 #define LM_DEBUG_MEM_DETAILS_JSON
 
-#if defined(__GNUC__) || defined(__clang__)
+#ifdef __GNUC__
+#define _LM_IS_GNUC
+#endif
+
+#ifdef __clang__
+#define _LM_IS_CLANG
+#endif
+
+#if defined(_LM_IS_GNUC) || defined(_LM_IS_CLANG)
 #define _LM_IS_GNUC_OR_CLANG
 #endif
 
 #ifdef _LM_IS_GNUC_OR_CLANG
-#define _LM_HAS_STATEMENT_EXTENSION
+#define _LM_HAS_STATEMENT_EXPR_EXTENSION
 #endif
 
 #define _LM_ASSERT(_cond, _msg) (assert(((_msg) && (_cond))))
@@ -71,6 +79,8 @@ typedef struct lm_string_s {
 } lm_string_t;
 
 typedef char lm_bool;
+typedef int32_t lm_int;
+typedef float lm_float;
 
 #define LM_TRUE 1
 #define LM_FALSE 0
@@ -82,6 +92,8 @@ lm_string_t* lm_string_from(char* allocated, size_t len);
 void lm_string_free(lm_string_t* str);
 
 lm_string_t* lm_string_copy(const lm_string_t* str);
+
+lm_string_t* lm_string_substr(const lm_string_t* str, size_t begin_offset, size_t len);
 
 lm_string_t* lm_string_clone(const lm_string_t* str);
 
@@ -99,6 +111,10 @@ char lm_string_get_safe(const lm_string_t* str, size_t index, lm_bool* is_valid)
 
 uint32_t lm_string_hash(const lm_string_t* str);
 
+lm_bool lm_string_stoi(const lm_string_t* str, lm_int* val);
+
+lm_bool lm_string_stof(const lm_string_t* str, lm_float* val);
+
 typedef uint32_t lm_atom_t;
 #define LM_ATOM_NIL 0
 
@@ -113,7 +129,7 @@ void lm__free(void* ptr);
 
 #if defined(LM_DEBUG) && defined(LM_DEBUG_MEM_DETAILS)
 
-#ifdef _LM_HAS_STATEMENT_EXTENSION
+#ifdef _LM_HAS_STATEMENT_EXPR_EXTENSION
 #ifdef LM_DEBUG_MEM_DETAILS_JSON
 
 #define _LM_ALLOC(type)                                                   \
@@ -180,7 +196,7 @@ void lm__free(void* ptr);
 
 #endif//#ifdef LM_DEBUG_MEM_DETAILS_JSON
 
-#else
+#else//#ifdef _LM_HAS_STATEMENT_EXPR_EXTENSION
 
 #warning statement extension feature not supported, defaulting to non-verbose log output.
 
@@ -191,7 +207,7 @@ void lm__free(void* ptr);
     (printf("alloc: " #type " (%zu) bytes * %zu\n", sizeof(type), count), \
      (type*) lm__alloc(sizeof(type) * count))
 
-#endif//#ifdef _LM_HAS_STATEMENT_EXTENSION
+#endif//#ifdef _LM_HAS_STATEMENT_EXPR_EXTENSION
 
 #else//#if defined(LM_DEBUG) && defined(LM_DEBUG_MEM_DETAILS)
 

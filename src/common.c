@@ -126,6 +126,10 @@ lm_string_t* lm_string_copy(const lm_string_t* str) {
     return lm_string_alloc(str->data, str->length);
 }
 
+lm_string_t* lm_string_substr(const lm_string_t* str, size_t begin_offset, size_t len) {
+    return lm_string_alloc(str->data + begin_offset, len);
+}
+
 lm_string_t* lm_string_clone(const lm_string_t* str) {
     lm_string_t* new_str = _LM_ALLOC(lm_string_t);
     new_str->internal = str->internal;
@@ -187,6 +191,24 @@ uint32_t lm_string_hash(const lm_string_t* str) {
     }
 
     return h;
+}
+
+lm_bool lm_string_stoi(const lm_string_t* str, lm_int* val) {
+    if (str == NULL || val == NULL) {
+        return LM_FALSE;
+    }
+
+    int converted_count = sscanf(str->data, "%d", val);
+    return converted_count == 1;
+}
+
+lm_bool lm_string_stof(const lm_string_t* str, lm_float* val) {
+    if (str == NULL || val == NULL) {
+        return LM_FALSE;
+    }
+
+    int converted_count = sscanf(str->data, "%f", val);
+    return converted_count == 1;
 }
 
 void lm__error_vtbl_free(lm_error_t* error) {

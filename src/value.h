@@ -19,8 +19,8 @@ typedef struct lm_value_s {
     lm_value_type_t type;
     union {
         lm_bool bool_value;
-        int int_value;
-        float float_value;
+        lm_int int_value;
+        lm_float float_value;
         struct lm_gc_object_s* gc_value;
     } v;
 } lm_value_t;

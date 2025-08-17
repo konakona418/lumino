@@ -33,8 +33,10 @@ const char* lm_token_type_to_string(lm_token_type_t type) {
             return "IDENTIFIER";
         case LM_TOKEN_TYPE_STRING_LITERAL:
             return "STRING_LITERAL";
-        case LM_TOKEN_TYPE_NUMBER_LITERAL:
-            return "NUMBER_LITERAL";
+        case LM_TOKEN_TYPE_INT_LITERAL:
+            return "INT_LITERAL";
+        case LM_TOKEN_TYPE_FLOAT_LITERAL:
+            return "FLOAT_LITERAL";
         case LM_TOKEN_TYPE_OP_ADD:
             return "OP_ADD";
         case LM_TOKEN_TYPE_OP_SUB:
@@ -420,11 +422,15 @@ lm_token_t lm__lexer_get_identifier_or_keyword(lm_lexer_t* lexer) {
 lm_token_t lm__lexer_get_number(lm_lexer_t* lexer) {
     size_t start_pos = lexer->pos;
 
+    lm_bool is_float = LM_FALSE;
+
     while (_LM_IS_DIGIT(lm__lexer_current_char(lexer))) {
         lm__lexer_advance(lexer);
     }
 
     if (lm__lexer_current_char(lexer) == '.') {
+        is_float = LM_TRUE;
+
         lm__lexer_advance(lexer);
 
         while (_LM_IS_DIGIT(lm__lexer_current_char(lexer))) {
@@ -433,7 +439,7 @@ lm_token_t lm__lexer_get_number(lm_lexer_t* lexer) {
     }
 
     return (lm_token_t){
-            .type = LM_TOKEN_TYPE_NUMBER_LITERAL,
+            .type = is_float ? LM_TOKEN_TYPE_FLOAT_LITERAL : LM_TOKEN_TYPE_INT_LITERAL,
             .value = lm_string_alloc(lexer->source->data + start_pos, lexer->pos - start_pos)};
 }
 

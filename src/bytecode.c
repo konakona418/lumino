@@ -74,6 +74,41 @@ size_t lm__byte_array_size(lm__byte_array_t* array) {
     return array->size;
 }
 
+const char* lm__byte_code_error_what(lm_error_t* error) {
+    return _LM_CAST(lm_byte_code_error_t, error)->msg->data;
+}
+
+void lm__byte_code_error_free(lm_error_t* error) {
+    lm_string_free(_LM_CAST(lm_byte_code_error_t, error)->msg);
+    _LM_FREE(error);
+}
+
+lm_byte_code_error_t* lm__byte_code_error_alloc(const char* msg) {
+    lm_byte_code_error_t* error = _LM_ALLOC(lm_byte_code_error_t);
+    error->vtbl.free = lm__byte_code_error_free;
+    error->vtbl.what = lm__byte_code_error_what;
+
+    size_t buf_size = snprintf(NULL, 0, "Bytecode generator error: %s", msg);
+    char* buf = _LM_ALLOC_ARRAY(char, buf_size + 1);
+
+    int n = snprintf(buf, buf_size + 1, "Bytecode generator error: %s", msg);
+
+    _LM_ASSERT(n >= 0, "snprintf failed");
+
+    error->msg = lm_string_from(buf, buf_size + 1);
+
+    return error;
+}
+
+void lm__byte_code_generator_emit_error(lm__byte_code_generator_t* generator, const char* msg) {
+    if (!generator->error_handler) {
+        return;
+    }
+
+    lm_byte_code_error_t* error = lm__byte_code_error_alloc(msg);
+    generator->error_handler(_LM_CAST(lm_error_t, error));
+}
+
 lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator_intern_string_ctx_t intern_string_ctx) {
     lm__byte_code_generator_t* generator = _LM_ALLOC(lm__byte_code_generator_t);
     generator->array = lm__byte_array_alloc();
@@ -100,6 +135,8 @@ void lm__byte_code_generator_generate_statement_iterator(lm_list_node_t* node, v
 void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
     lm__ast_program_t* program = _LM_CAST(lm__ast_program_t, stmt);
     lm_list_iterate(program->stmts, lm__byte_code_generator_generate_statement_iterator, generator);
+
+    lm__byte_code_generator_emit(generator, LM__OPCODE_HALT);
 }
 
 void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
@@ -127,9 +164,163 @@ void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* gener
 }
 
 void lm__byte_code_generator_generate_declaration(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
+    lm__ast_decl_t* decl = _LM_CAST(lm__ast_decl_t, stmt);
+    lm__byte_code_generator_generate_expression(generator, _LM_CAST(lm__ast_expression_t, decl->value_stmt));
+
+    lm_atom_t atom = lm__byte_code_generator_alloc_atom(generator, decl->name);
+
+    lm__byte_code_generator_emit(generator, LM__DECL_VAR);
+    lm__byte_code_generator_emit_atom(generator, atom);
+
+    lm__byte_code_generator_emit(generator, LM__STORE_VAR);
+    lm__byte_code_generator_emit_atom(generator, atom);
 }
 
 void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    switch (expr->expr_type) {
+        case LM_AST_EXPRESSION_TYPE_ASSIGN: {
+            lm__byte_code_generator_generate_assign_expr(generator, expr);
+            break;
+        }
+        case LM_AST_EXPRESSION_TYPE_BINARY: {
+            lm__byte_code_generator_generate_binary_expr(generator, expr);
+            break;
+        }
+        case LM_AST_EXPRESSION_TYPE_UNARY: {
+            lm__byte_code_generator_generate_unary_expr(generator, expr);
+            break;
+        }
+        case LM_AST_EXPRESSION_TYPE_LITERAL: {
+            lm__byte_code_generator_generate_literal_expr(generator, expr);
+            break;
+        }
+        case LM_AST_EXPRESSION_TYPE_VAR: {
+            lm__byte_code_generator_generate_var_access_expr(generator, expr);
+            break;
+        }
+        default: {
+            lm__byte_code_generator_emit_error(generator, "unknown expression type");
+            break;
+        }
+    }
+}
+
+
+void lm__byte_code_generator_generate_lvalue_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    switch (expr->expr_type) {
+        case LM_AST_EXPRESSION_TYPE_VAR: {
+            lm__ast_var_expr_t* var_expr = _LM_CAST(lm__ast_var_expr_t, expr);
+            lm_atom_t atom = lm__byte_code_generator_alloc_atom(generator, var_expr->name);
+
+            lm__byte_code_generator_emit(generator, LM__STORE_VAR);
+            lm__byte_code_generator_emit_atom(generator, atom);
+            break;
+        }
+        default:
+            lm__byte_code_generator_emit_error(generator, "expecting lvalue expression");
+            break;
+    }
+}
+
+void lm__byte_code_generator_generate_var_access_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    lm__ast_var_expr_t* var_expr = _LM_CAST(lm__ast_var_expr_t, expr);
+    lm_atom_t atom = lm__byte_code_generator_alloc_atom(generator, var_expr->name);
+
+    lm__byte_code_generator_emit(generator, LM__LOAD_VAR);
+    lm__byte_code_generator_emit_atom(generator, atom);
+}
+
+void lm__byte_code_generator_generate_assign_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    lm__ast_assign_expr_t* assign_expr = _LM_CAST(lm__ast_assign_expr_t, expr);
+
+    lm__byte_code_generator_generate_expression(generator, assign_expr->rhs);
+    lm__byte_code_generator_generate_lvalue_expr(generator, assign_expr->lhs);
+}
+
+lm__opcode_value_t lm__byte_code_generator_binary_expr_type_to_opcode(lm__ast_binary_expr_type_t type) {
+    switch (type) {
+        case LM_AST_BINARY_EXPR_TYPE_ADD:
+            return LM__OP_ADD;
+        case LM_AST_BINARY_EXPR_TYPE_SUB:
+            return LM__OP_SUB;
+        case LM_AST_BINARY_EXPR_TYPE_MUL:
+            return LM__OP_MUL;
+        case LM_AST_BINARY_EXPR_TYPE_DIV:
+            return LM__OP_DIV;
+        case LM_AST_BINARY_EXPR_TYPE_MOD:
+            return LM__OP_MOD;
+        case LM_AST_BINARY_EXPR_TYPE_EQ:
+            return LM__OP_EQ;
+        case LM_AST_BINARY_EXPR_TYPE_NEQ:
+            return LM__OP_NEQ;
+        case LM_AST_BINARY_EXPR_TYPE_LT:
+            return LM__OP_LT;
+        case LM_AST_BINARY_EXPR_TYPE_LTE:
+            return LM__OP_LTE;
+        case LM_AST_BINARY_EXPR_TYPE_GT:
+            return LM__OP_GT;
+        case LM_AST_BINARY_EXPR_TYPE_GTE:
+            return LM__OP_GTE;
+        case LM_AST_BINARY_EXPR_TYPE_LAND:
+            return LM__OP_AND;
+        case LM_AST_BINARY_EXPR_TYPE_LOR:
+            return LM__OP_OR;
+        default:
+            _LM_ASSERT(0, "not a supported binary expr type");
+    }
+}
+
+void lm__byte_code_generator_generate_binary_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    lm__ast_binary_expr_t* binary_expr = _LM_CAST(lm__ast_binary_expr_t, expr);
+    lm__byte_code_generator_generate_expression(generator, binary_expr->lhs);
+    lm__byte_code_generator_generate_expression(generator, binary_expr->rhs);
+    lm__byte_code_generator_emit(
+            generator,
+            lm__byte_code_generator_binary_expr_type_to_opcode(binary_expr->type));
+}
+
+lm__opcode_value_t lm__byte_code_generator_unary_expr_type_to_opcode(lm__ast_unary_expr_type_t type) {
+    switch (type) {
+        case LM_AST_UNARY_EXPR_TYPE_NEG:
+            return LM__OP_NEG;
+        default:
+            _LM_ASSERT(0, "not a supported unary expr type");
+    }
+}
+
+void lm__byte_code_generator_generate_unary_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    lm__ast_unary_expr_t* unary_expr = _LM_CAST(lm__ast_unary_expr_t, expr);
+    lm__byte_code_generator_generate_expression(generator, unary_expr->rhs);
+    lm__byte_code_generator_emit(
+            generator,
+            lm__byte_code_generator_unary_expr_type_to_opcode(unary_expr->type));
+}
+
+void lm__byte_code_generator_generate_literal_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
+    lm__ast_literal_expr_t* literal_expr = _LM_CAST(lm__ast_literal_expr_t, expr);
+    switch (literal_expr->type) {
+        case LM_AST_LITERAL_EXPR_TYPE_BOOL:
+            lm__byte_code_generator_emit(generator, LM__LOAD_BOOL);
+            lm__byte_code_generator_emit_byte(generator, literal_expr->data.bool_val);
+            break;
+        case LM_AST_LITERAL_EXPR_TYPE_FLOAT:
+            lm__byte_code_generator_emit(generator, LM__LOAD_FLOAT);
+            lm__byte_code_generator_emit_f32(generator, literal_expr->data.float_val);
+            break;
+        case LM_AST_LITERAL_EXPR_TYPE_INT:
+            lm__byte_code_generator_emit(generator, LM__LOAD_INT);
+            lm__byte_code_generator_emit_i32(generator, literal_expr->data.int_val);
+            break;
+        case LM_AST_LITERAL_EXPR_TYPE_STRING: {
+            lm__byte_code_generator_emit(generator, LM__LOAD_STRING);
+            lm_atom_t atom = lm__byte_code_generator_alloc_atom(generator, literal_expr->data.str_val);
+            lm__byte_code_generator_emit_atom(generator, atom);
+            break;
+        }
+        case LM_AST_LITERAL_EXPR_TYPE_NULL:
+            lm__byte_code_generator_emit(generator, LM__LOAD_NULL);
+            break;
+    }
 }
 
 void lm__byte_code_generator_free(lm__byte_code_generator_t* generator) {
@@ -138,11 +329,15 @@ void lm__byte_code_generator_free(lm__byte_code_generator_t* generator) {
 }
 
 lm_atom_t lm__byte_code_generator_alloc_atom(lm__byte_code_generator_t* generator, lm_string_t* str) {
-    return generator->intern_string_ctx.pfn(generator->intern_string_ctx.ctx, str);
+    return generator->intern_string_ctx.pfn(str, generator->intern_string_ctx.ctx);
 }
 
 void lm__byte_code_generator_emit(lm__byte_code_generator_t* generator, lm__opcode_value_t opcode) {
     lm__byte_array_push(generator->array, (uint8_t) opcode);
+}
+
+void lm__byte_code_generator_emit_byte(lm__byte_code_generator_t* generator, uint8_t value) {
+    lm__byte_array_push(generator->array, value);
 }
 
 void lm__byte_code_generator_emit_i32(lm__byte_code_generator_t* generator, int32_t value) {

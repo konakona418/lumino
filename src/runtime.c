@@ -106,7 +106,7 @@ void lm__atom_hash_table_realloc(lm__atom_hash_table_t* table) {
     _LM_FREE(old_entries);
 }
 
-lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, lm_string_t* str) {
+lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, const lm_string_t* str) {
     lm_string_t* dup = lm_string_clone(str);// increase ref count
 
     lm_bool found = LM_FALSE;
@@ -152,6 +152,10 @@ void lm_runtime_free(lm_runtime_t* runtime) {
 
 void lm__runtime_detach_context(lm_runtime_t* runtime, lm_context_t* context) {
     lm_list_remove(&context->list_node);
+}
+
+lm_atom_t lm_runtime_allocate_atom(lm_runtime_t* runtime, const lm_string_t* str) {
+    return lm__atom_hash_table_intern(&runtime->atom_table, str);
 }
 
 lm__stack_frame_var_cell_t* lm__stack_frame_var_cell_alloc() {

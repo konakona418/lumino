@@ -212,17 +212,24 @@ typedef enum lm__ast_literal_expr_type_e {
     LM_AST_LITERAL_EXPR_TYPE_NULL,
 } lm__ast_literal_expr_type_t;
 
+typedef union lm__ast_literal_expr_data_u {
+    lm_int int_val;
+    lm_float float_val;
+    lm_bool bool_val;
+    lm_string_t* str_val;
+} lm__ast_literal_expr_data_t;
+
 typedef struct lm__ast_literal_expr_s {
     LM_AST_STATEMENT_HEADER
     LM_AST_EXPRESSION_HEADER
 
     lm__ast_literal_expr_type_t type;
-    lm_string_t* value;// todo: use union
+    lm__ast_literal_expr_data_t data;
 } lm__ast_literal_expr_t;
 
 lm__ast_literal_expr_t* lm__ast_literal_expr_alloc(
         lm__ast_literal_expr_type_t type,
-        lm_string_t* value);
+        lm__ast_literal_expr_data_t value);
 
 void lm__ast_literal_expr_free(lm__ast_statement_t* expr);
 

@@ -129,10 +129,9 @@ void lm__ast_unary_expr_free(lm__ast_statement_t* expr) {
     _LM_FREE(unary_expr);
 }
 
-
 lm__ast_literal_expr_t* lm__ast_literal_expr_alloc(
         lm__ast_literal_expr_type_t type,
-        lm_string_t* value) {
+        lm__ast_literal_expr_data_t value) {
     lm__ast_literal_expr_t* literal_expr = _LM_ALLOC(lm__ast_literal_expr_t);
     lm_list_node_init(&literal_expr->list_node);
 
@@ -141,7 +140,7 @@ lm__ast_literal_expr_t* lm__ast_literal_expr_alloc(
     literal_expr->vtbl.free = lm__ast_literal_expr_free;
 
     literal_expr->type = type;
-    literal_expr->value = value;
+    literal_expr->data = value;
 
     return literal_expr;
 }
@@ -149,7 +148,10 @@ lm__ast_literal_expr_t* lm__ast_literal_expr_alloc(
 void lm__ast_literal_expr_free(lm__ast_statement_t* expr) {
     lm__ast_literal_expr_t* literal_expr = (lm__ast_literal_expr_t*) expr;
 
-    lm_string_free(literal_expr->value);
+    if (literal_expr->type == LM_AST_LITERAL_EXPR_TYPE_STRING) {
+        lm_string_free(literal_expr->data.str_val);
+    }
+
     _LM_FREE(expr);
 }
 

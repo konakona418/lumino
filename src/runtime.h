@@ -44,7 +44,7 @@ void lm__atom_hash_table_deinit(lm__atom_hash_table_t* table);
 
 void lm__atom_hash_table_realloc(lm__atom_hash_table_t* table);
 
-lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, lm_string_t* str);
+lm_atom_t lm__atom_hash_table_intern(lm__atom_hash_table_t* table, const lm_string_t* str);
 
 const lm_string_t* lm__atom_hash_table_lookup(lm__atom_hash_table_t* table, lm_atom_t atom);
 
@@ -60,6 +60,8 @@ lm_runtime_t* lm_runtime_alloc();
 void lm_runtime_free(lm_runtime_t* runtime);
 
 void lm__runtime_detach_context(lm_runtime_t* runtime, struct lm_context_s* context);
+
+lm_atom_t lm_runtime_allocate_atom(lm_runtime_t* runtime, const lm_string_t* str);
 
 typedef void* (*lm__context_local_alloc_pfn)(struct lm_context_s* context, size_t size);
 typedef void (*lm__context_local_free_pfn)(struct lm_context_s* context, void* ptr);
