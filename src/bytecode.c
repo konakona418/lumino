@@ -21,32 +21,45 @@ void lm__byte_array_realloc(lm__byte_array_t* array, size_t new_capacity) {
     _LM_ASSERT(new_capacity > array->capacity, "new_capacity must be greater than array->capacity");
 
     size_t old_capacity = array->capacity;
+    size_t old_size = array->size;
     uint8_t* old_data = array->data;
 
     array->capacity = new_capacity;
     array->data = _LM_CALLOC(uint8_t, new_capacity);
 
-    memcpy(array->data, old_data, old_capacity);
+    memcpy(array->data, old_data, old_size);
     _LM_FREE(old_data);
 }
 
 void lm__byte_array_reserve(lm__byte_array_t* array, size_t size) {
-    if (array->size + size > array->capacity) {
-        lm__byte_array_realloc(array, array->size + size);
+    size_t required = array->size + size;
+    if (required > array->capacity) {
+        size_t new_capacity = array->capacity ? array->capacity : 64;
+
+        while (new_capacity < required) {
+            new_capacity *= _LM_BYTE_ARRAY_GROWTH_FACTOR;
+        }
+
+        lm__byte_array_realloc(array, new_capacity);
     }
 }
 
 void lm__byte_array_push(lm__byte_array_t* array, uint8_t value) {
     if (array->size >= array->capacity) {
-        lm__byte_array_realloc(array, array->size * _LM_BYTE_ARRAY_GROWTH_FACTOR);
+        lm__byte_array_realloc(array, array->capacity * _LM_BYTE_ARRAY_GROWTH_FACTOR);
     }
 
     array->data[array->size++] = value;
 }
 
 void lm__byte_array_push_array(lm__byte_array_t* array, uint8_t* values, size_t size) {
-    if (array->size + size >= array->capacity) {
-        lm__byte_array_realloc(array, array->size * _LM_BYTE_ARRAY_GROWTH_FACTOR);
+    if (array->size + size > array->capacity) {
+        size_t new_capacity = array->capacity ? array->capacity : 64;
+        while (new_capacity < array->size + size) {
+            new_capacity *= _LM_BYTE_ARRAY_GROWTH_FACTOR;
+        }
+
+        lm__byte_array_realloc(array, new_capacity);
     }
 
     memcpy(array->data + array->size, values, size);
@@ -118,11 +131,22 @@ lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator
     return generator;
 }
 
+void lm__byte_code_generator_clear(lm__byte_code_generator_t* generator) {
+    lm__byte_array_free(generator->array);
+
+    generator->array = lm__byte_array_alloc();
+    generator->program = NULL;
+}
+
 void lm__byte_code_generator_generate(
         lm__byte_code_generator_t* generator,
         lm__ast_statement_t* program) {
     generator->program = program;
     lm__byte_code_generator_generate_program(generator, generator->program);
+}
+
+const lm__byte_array_t* lm__byte_code_generator_get_array(lm__byte_code_generator_t* generator) {
+    return generator->array;
 }
 
 void lm__byte_code_generator_generate_statement_iterator(lm_list_node_t* node, void* ctx) {

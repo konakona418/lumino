@@ -133,7 +133,11 @@ void lm__byte_code_generator_emit_error(lm__byte_code_generator_t* generator, co
 
 lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator_intern_string_ctx_t intern_string_ctx);
 
+void lm__byte_code_generator_clear(lm__byte_code_generator_t* generator);
+
 void lm__byte_code_generator_generate(lm__byte_code_generator_t* generator, lm__ast_statement_t* program);
+
+const lm__byte_array_t* lm__byte_code_generator_get_array(lm__byte_code_generator_t* generator);
 
 void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
 

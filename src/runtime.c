@@ -269,6 +269,89 @@ lm_value_t* lm__stack_frame_get_var(lm__stack_frame_t* frame, lm_atom_t name) {
     return lm__stack_frame_var_hash_table_get(&frame->var_hash_table, name);
 }
 
+lm__operand_stack_cell_t* lm__operand_stack_cell_alloc() {
+    lm__operand_stack_cell_t* cell = _LM_ALLOC(lm__operand_stack_cell_t);
+    lm_list_node_init(&cell->list_node);
+    cell->size = 0;
+
+    return cell;
+}
+
+void lm__operand_stack_cell_free(lm__operand_stack_cell_t* cell) {
+    _LM_FREE(cell);
+}
+
+lm__operand_stack_t* lm__operand_stack_alloc() {
+    lm__operand_stack_t* stack = _LM_ALLOC(lm__operand_stack_t);
+    lm_list_node_init(&stack->cells_head);
+
+    return stack;
+}
+
+void lm__operand_stack_cell_free_iterator(lm_list_node_t* node, void* ctx) {
+    lm__operand_stack_cell_free(lm_list_entry(node, lm__operand_stack_cell_t, list_node));
+}
+
+void lm__operand_stack_free(lm__operand_stack_t* stack) {
+    lm_list_iterate_safe(&stack->cells_head, lm__operand_stack_cell_free_iterator, NULL);
+    _LM_FREE(stack);
+}
+
+void lm__operand_stack_push(lm__operand_stack_t* stack, lm_value_t value) {
+    lm__operand_stack_cell_t* tail =
+            lm_list_entry(lm_list_tail(&stack->cells_head),
+                          lm__operand_stack_cell_t, list_node);
+
+    if (tail->size == LM_RUNTIME_STACK_CELL_SIZE) {
+        tail = lm__operand_stack_cell_alloc();
+        lm_list_add_tail(&stack->cells_head, &tail->list_node);
+
+        tail->values[0] = value;
+    } else {
+        tail->values[tail->size] = value;
+    }
+
+    tail->size++;
+}
+
+lm_value_t lm__operand_stack_pop(lm__operand_stack_t* stack) {
+    lm__operand_stack_cell_t* tail =
+            lm_list_entry(lm_list_tail(&stack->cells_head),
+                          lm__operand_stack_cell_t, list_node);
+
+    if (tail->size == 0) {
+        lm_list_remove(lm_list_tail(&stack->cells_head));
+        lm__operand_stack_cell_free(tail);
+
+        tail = lm_list_entry(lm_list_tail(&stack->cells_head),
+                             lm__operand_stack_cell_t, list_node);
+    }
+
+    return tail->values[--tail->size];
+}
+
+void lm__operand_stack_peek(lm__operand_stack_t* stack) {
+    lm__operand_stack_cell_t* tail =
+            lm_list_entry(lm_list_tail(&stack->cells_head),
+                          lm__operand_stack_cell_t, list_node);
+
+    if (tail->size == 0) {
+        lm_list_remove(lm_list_tail(&stack->cells_head));
+        lm__operand_stack_cell_free(tail);
+
+        tail = lm_list_entry(lm_list_tail(&stack->cells_head),
+                             lm__operand_stack_cell_t, list_node);
+    }
+
+    lm_value_t value = tail->values[tail->size - 1];
+    lm__operand_stack_push(stack, value);
+}
+
+lm_atom_t lm__context_alloc_atom(lm_string_t* str, void* ctx) {
+    lm_runtime_t* runtime = ctx;
+    return lm_runtime_allocate_atom(runtime, str);
+}
+
 lm_context_t* lm_context_alloc(lm_runtime_t* runtime) {
     _LM_ASSERT_NOT_NULL(runtime, "runtime cannot be null");
 
@@ -277,7 +360,16 @@ lm_context_t* lm_context_alloc(lm_runtime_t* runtime) {
     lm_list_node_init(&context->list_node);
     lm_list_node_init(&context->stack_frame_head);
     context->runtime = runtime;
+    context->operand_stack = lm__operand_stack_alloc();
     context->pc = NULL;
+    context->code = lm__byte_array_alloc();
+
+    lm__byte_code_generator_intern_string_ctx_t generator_ctx = {
+            .ctx = runtime,
+            .pfn = lm__context_alloc_atom};
+
+    context->code_generator = lm__byte_code_generator_alloc(generator_ctx);
+
     // todo: context->local_allocator = runtime->local_allocator;
 
     return context;
@@ -285,6 +377,10 @@ lm_context_t* lm_context_alloc(lm_runtime_t* runtime) {
 
 void lm_context_free(lm_context_t* context) {
     // todo: detach stack frames
+
+    lm__operand_stack_free(context->operand_stack);
+    lm__byte_code_generator_free(context->code_generator);
+    lm__byte_array_free(context->code);
 
     lm__runtime_detach_context(context->runtime, context);
     _LM_FREE(context);
@@ -301,4 +397,12 @@ void lm__context_pop_frame(lm_context_t* context) {
 
     lm_list_remove(tail);
     lm__stack_frame_free(frame);
+}
+
+void lm__context_generate(lm_context_t* context, lm__ast_statement_t* program) {
+    //lm__byte_code_generator_clear(context->code_generator);
+    lm__byte_code_generator_generate_program(context->code_generator, program);
+    const lm__byte_array_t* array = lm__byte_code_generator_get_array(context->code_generator);
+
+    lm__byte_array_push_array(context->code, array->data, array->size);
 }

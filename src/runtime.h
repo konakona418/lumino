@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bytecode.h"
 #include "common.h"
 #include "value.h"
 
@@ -130,14 +131,43 @@ lm_value_t* lm__stack_frame_add_var(lm__stack_frame_t* frame, lm_atom_t name);
 
 lm_value_t* lm__stack_frame_get_var(lm__stack_frame_t* frame, lm_atom_t name);
 
+typedef struct lm__operand_stack_cell_s {
+    lm_list_node_t list_node;
+
+    lm_value_t values[LM_RUNTIME_STACK_CELL_SIZE];
+    size_t size;
+} lm__operand_stack_cell_t;
+
+lm__operand_stack_cell_t* lm__operand_stack_cell_alloc();
+
+void lm__operand_stack_cell_free(lm__operand_stack_cell_t* cell);
+
+typedef struct lm__operand_stack_s {
+    lm_list_node_t cells_head;
+} lm__operand_stack_t;
+
+lm__operand_stack_t* lm__operand_stack_alloc();
+
+void lm__operand_stack_free(lm__operand_stack_t* stack);
+
+void lm__operand_stack_push(lm__operand_stack_t* stack, lm_value_t value);
+
+lm_value_t lm__operand_stack_pop(lm__operand_stack_t* stack);
+
+void lm__operand_stack_peek(lm__operand_stack_t* stack);
+
 typedef struct lm_context_s {
     lm_list_node_t list_node;
     lm_runtime_t* runtime;
 
+    lm__byte_array_t* code;
+
     lm_list_node_t stack_frame_head;
+    lm__operand_stack_t* operand_stack;
     uint8_t* pc;
 
     lm__context_local_allocator_t local_allocator;
+    lm__byte_code_generator_t* code_generator;
 } lm_context_t;
 
 lm_context_t* lm_context_alloc(lm_runtime_t* runtime);
@@ -147,3 +177,5 @@ void lm_context_free(lm_context_t* context);
 void lm__context_push_frame(lm_context_t* context, uint8_t* pc);
 
 void lm__context_pop_frame(lm_context_t* context);
+
+void lm__context_generate(lm_context_t* context, lm__ast_statement_t* program);
