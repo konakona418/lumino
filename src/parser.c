@@ -557,7 +557,7 @@ lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser) {
         }
         case LM_TOKEN_TYPE_STRING_LITERAL: {
             lm_string_t* sub = lm_string_substr(token.value, 1,
-                                                lm_string_len(token.value - 2));
+                                                lm_string_len(token.value) - 2);
             lm_string_free(token.value);
 
             expr = _LM_CAST(lm__ast_expression_t,
