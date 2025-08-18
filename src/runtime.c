@@ -412,6 +412,10 @@ void lm_context_free(lm_context_t* context) {
     _LM_FREE(context);
 }
 
+const lm__byte_array_t* lm_context_get_code(lm_context_t* context) {
+    return context->code;
+}
+
 void lm__context_push_frame(lm_context_t* context, uint8_t* pc) {
     lm__stack_frame_t* frame = lm__stack_frame_alloc(context, pc);
     lm_list_add_tail(&context->stack_frame_head, &frame->list_node);
@@ -640,7 +644,7 @@ lm_value_t lm_eval(lm_context_t* context, const char* str, lm_eval_scope_t scope
     lm__context_generate(context, program, LM_TRUE);
     lm__ast_statement_free(program);
 
-    lm_print_byte_code(context->code->data, context->code->size);
+    //lm_print_byte_code(context->code->data, context->code->size);
 
     lm__context_run(context);
 

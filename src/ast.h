@@ -56,13 +56,21 @@ typedef struct lm__ast_block_s {
     lm_list_node_t* stmts;
 } lm__ast_block_t;
 
+lm__ast_block_t* lm__ast_block_alloc(lm_list_node_t* stmts);
+
+void lm__ast_block_free(lm__ast_statement_t* stmt);
+
 typedef struct lm__ast_if_s {
     LM_AST_STATEMENT_HEADER
 
     lm__ast_statement_t* condition;
     lm__ast_statement_t* then_body;
-    lm__ast_statement_t* else_body;
+    lm__ast_statement_t* _LM_NULLABLE else_body;
 } lm__ast_if_t;
+
+lm__ast_if_t* lm__ast_if_alloc(lm__ast_statement_t* condition, lm__ast_statement_t* then_body, lm__ast_statement_t* else_body);
+
+void lm__ast_if_free(lm__ast_statement_t* stmt);
 
 typedef struct lm__ast_for_s {
     LM_AST_STATEMENT_HEADER

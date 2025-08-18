@@ -99,6 +99,14 @@ void lm__byte_array_pop_array(lm__byte_array_t* array, uint8_t* values, size_t s
 
 uint8_t* lm__byte_array_data(lm__byte_array_t* array);
 
+uint8_t* lm__byte_array_at(lm__byte_array_t* array, size_t index);
+
+#define lm__byte_array_at_int(array, index) \
+    _LM_CAST(lm_int, lm__byte_array_at(array, index))
+
+#define lm__byte_array_at_float(array, index) \
+    _LM_CAST(lm_float, lm__byte_array_at(array, index))
+
 size_t lm__byte_array_size(lm__byte_array_t* array);
 
 typedef struct lm_byte_code_error_s {
@@ -144,6 +152,8 @@ void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generat
 void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
 
 void lm__byte_code_generator_generate_declaration(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
+
+void lm__byte_code_generator_generate_if_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
 
 void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
 

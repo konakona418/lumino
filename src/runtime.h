@@ -176,6 +176,8 @@ lm_context_t* lm_context_alloc(lm_runtime_t* runtime);
 
 void lm_context_free(lm_context_t* context);
 
+const lm__byte_array_t* lm_context_get_code(lm_context_t* context);
+
 void lm__context_push_frame(lm_context_t* context, uint8_t* pc);
 
 void lm__context_pop_frame(lm_context_t* context);

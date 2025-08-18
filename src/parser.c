@@ -264,7 +264,23 @@ lm_token_t lm__parser_current(lm_parser_t* parser) {
 }
 
 lm__ast_statement_t* lm__parser_parse_block(lm_parser_t* parser) {
-    return NULL;
+    lm_list_node_t* head = lm_list_node_alloc();
+
+    lm__parser_add_scope(parser, LM__PARSER_BLOCK_SCOPE_TYPE_BLOCK);
+    lm__parser_consume(parser, LM_TOKEN_TYPE_L_CURLY_BRACKET);
+
+    while (lm__parser_current(parser).type != LM_TOKEN_TYPE_R_CURLY_BRACKET) {
+        lm__ast_statement_t* statement = lm__parser_parse_statement(parser);
+
+        lm_list_add_tail(head, &statement->list_node);
+    }
+
+    lm__parser_consume(parser, LM_TOKEN_TYPE_R_CURLY_BRACKET);
+    lm__parser_remove_scope(parser);
+
+    lm__ast_block_t* block = lm__ast_block_alloc(head);
+
+    return _LM_CAST(lm__ast_statement_t, block);
 }
 
 lm__ast_statement_t* lm__parser_parse_statement(lm_parser_t* parser) {
@@ -631,7 +647,33 @@ lm__ast_statement_t* lm__parser_parse_decl(lm_parser_t* parser) {
 }
 
 lm__ast_statement_t* lm__parser_parse_if_statement(lm_parser_t* parser) {
-    return NULL;
+    lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_IF);
+    lm__parser_consume(parser, LM_TOKEN_TYPE_L_PARENTHESIS);
+
+    lm__ast_expression_t* cond = lm__parser_parse_simple_expression(parser);
+
+    lm__parser_consume(parser, LM_TOKEN_TYPE_R_PARENTHESIS);
+
+    lm__ast_statement_t* then_body = NULL;
+    if (lm__parser_current(parser).type == LM_TOKEN_TYPE_L_CURLY_BRACKET) {
+        then_body = lm__parser_parse_block(parser);
+    } else {
+        then_body = lm__parser_parse_statement(parser);
+    }
+
+    lm__ast_statement_t* else_body = NULL;
+    if (lm__parser_current(parser).type == LM_TOKEN_TYPE_KEYWORD_ELSE) {
+        lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_ELSE);
+        if (lm__parser_current(parser).type == LM_TOKEN_TYPE_L_CURLY_BRACKET) {
+            else_body = lm__parser_parse_block(parser);
+        } else {
+            else_body = lm__parser_parse_statement(parser);
+        }
+    }
+
+    lm__ast_if_t* stmt = lm__ast_if_alloc(_LM_CAST(lm__ast_statement_t, cond), then_body, else_body);
+
+    return _LM_CAST(lm__ast_statement_t, stmt);
 }
 
 lm__ast_statement_t* lm__parser_parse_while_statement(lm_parser_t* parser) {

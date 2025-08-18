@@ -83,6 +83,10 @@ uint8_t* lm__byte_array_data(lm__byte_array_t* array) {
     return array->data;
 }
 
+uint8_t* lm__byte_array_at(lm__byte_array_t* array, size_t index) {
+    return array->data + index;
+}
+
 size_t lm__byte_array_size(lm__byte_array_t* array) {
     return array->size;
 }
@@ -157,15 +161,20 @@ void lm__byte_code_generator_generate(
     lm__byte_code_generator_generate_program(generator, generator->program, eval_mode);
 }
 
-const lm__byte_array_t* lm__byte_code_generator_get_array(lm__byte_code_generator_t* generator) {
-    return generator->array;
-}
-
 void lm__byte_code_generator_generate_statement_iterator(lm_list_node_t* node, void* ctx) {
     lm__ast_statement_t* stmt = lm_list_entry(node, lm__ast_statement_t, list_node);
     lm__byte_code_generator_t* generator = ctx;
 
     lm__byte_code_generator_generate_statement(generator, stmt);
+}
+
+void lm__byte_code_generator_generate_block(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
+    lm__ast_block_t* block = _LM_CAST(lm__ast_block_t, stmt);
+    lm_list_iterate(block->stmts, lm__byte_code_generator_generate_statement_iterator, generator);
+}
+
+const lm__byte_array_t* lm__byte_code_generator_get_array(lm__byte_code_generator_t* generator) {
+    return generator->array;
 }
 
 void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt, lm_bool eval_mode) {
@@ -185,7 +194,11 @@ void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* gener
             lm__byte_code_generator_generate_expression(generator, _LM_CAST(lm__ast_expression_t, stmt));
             break;
         case LM_AST_STATEMENT_TYPE_BLOCK:
+            lm__byte_code_generator_generate_block(generator, stmt);
+            break;
         case LM_AST_STATEMENT_TYPE_IF:
+            lm__byte_code_generator_generate_if_stmt(generator, stmt);
+            break;
         case LM_AST_STATEMENT_TYPE_FOR:
         case LM_AST_STATEMENT_TYPE_WHILE:
         case LM_AST_STATEMENT_TYPE_BREAK:
@@ -209,6 +222,38 @@ void lm__byte_code_generator_generate_declaration(lm__byte_code_generator_t* gen
 
     lm__byte_code_generator_emit(generator, LM__STORE_VAR);
     lm__byte_code_generator_emit_atom(generator, atom);
+}
+
+void lm__byte_code_generator_generate_if_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
+    lm__ast_if_t* if_stmt = _LM_CAST(lm__ast_if_t, stmt);
+    lm__byte_code_generator_generate_expression(generator, _LM_CAST(lm__ast_expression_t, if_stmt->condition));
+    lm__byte_code_generator_emit(generator, LM__OP_JMP_IF_FALSE);
+
+    size_t jump_to_else_param_pos = lm__byte_array_size(generator->array);
+    lm__byte_code_generator_emit_i32(generator, 0);
+    size_t jump_to_else_begin_pos = lm__byte_array_size(generator->array);
+
+    lm__byte_code_generator_generate_statement(generator, if_stmt->then_body);
+
+    if (if_stmt->else_body) {
+        lm__byte_code_generator_emit(generator, LM__OP_JMP);
+
+        size_t jump_to_end_param_pos = lm__byte_array_size(generator->array);
+        lm__byte_code_generator_emit_i32(generator, 0);
+        size_t jump_to_end_begin_pos = lm__byte_array_size(generator->array);
+
+        ssize_t jump_over_then_body_offset = lm__byte_array_size(generator->array) - jump_to_else_begin_pos;
+        *lm__byte_array_at_int(generator->array, jump_to_else_param_pos) = jump_over_then_body_offset;
+
+        lm__byte_code_generator_generate_statement(generator, if_stmt->else_body);
+
+        ssize_t jump_to_end_offset = lm__byte_array_size(generator->array) - jump_to_end_begin_pos;
+
+        *lm__byte_array_at_int(generator->array, jump_to_end_param_pos) = jump_to_end_offset;
+    } else {
+        ssize_t jump_to_end_offset = lm__byte_array_size(generator->array) - jump_to_else_begin_pos;
+        *lm__byte_array_at_int(generator->array, jump_to_else_param_pos) = jump_to_end_offset;
+    }
 }
 
 void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
@@ -394,6 +439,7 @@ void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_
 void lm_print_byte_code(uint8_t* byte_code, size_t size) {
     uint8_t* idx = byte_code;
     while (idx != byte_code + size) {
+        printf("%d: ", (lm_int) (idx - byte_code));
         switch ((lm__opcode_value_t) *idx) {
             case LM__OPCODE_NOP: {
                 printf("NOP\n");
@@ -560,9 +606,36 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
                 idx++;
                 break;
             }
-            case LM__OP_JMP:
-            case LM__OP_JMP_IF_FALSE:
-            case LM__OP_JMP_IF_TRUE:
+            case LM__OP_JMP: {
+                printf("JMP ");
+                idx++;
+
+                lm_int diff = *_LM_CAST(lm_int, idx);
+                idx += sizeof(lm_int);
+
+                printf("[%d (%d)]\n", diff, (lm_int) (idx - byte_code) + diff);
+                break;
+            }
+            case LM__OP_JMP_IF_FALSE: {
+                printf("JMP_IF_FALSE ");
+                idx++;
+
+                lm_int diff = *_LM_CAST(lm_int, idx);
+                idx += sizeof(lm_int);
+
+                printf("[%d (%d)]\n", diff, (lm_int) (idx - byte_code) + diff);
+                break;
+            }
+            case LM__OP_JMP_IF_TRUE: {
+                printf("JMP_IF_TRUE ");
+                idx++;
+
+                lm_int diff = *_LM_CAST(lm_int, idx);
+                idx += sizeof(lm_int);
+
+                printf("[%d (%d)]\n", diff, (lm_int) (idx - byte_code) + diff);
+                break;
+            }
             case LM__OP_CALL:
             case LM__OP_RET:
                 _LM_ASSERT(0, "not implemented");

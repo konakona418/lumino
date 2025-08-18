@@ -36,6 +36,54 @@ void lm__ast_program_free(lm__ast_statement_t* stmt) {
     _LM_FREE(stmt);
 }
 
+lm__ast_block_t* lm__ast_block_alloc(lm_list_node_t* stmts) {
+    lm__ast_block_t* block = _LM_ALLOC(lm__ast_block_t);
+    lm_list_node_init(&block->list_node);
+
+    block->stmt_type = LM_AST_STATEMENT_TYPE_BLOCK;
+    block->vtbl.free = lm__ast_block_free;
+
+    block->stmts = stmts;
+
+    return block;
+}
+
+void lm__ast_block_free(lm__ast_statement_t* stmt) {
+    lm__ast_block_t* block = (lm__ast_block_t*) stmt;
+
+    lm_list_iterate_safe(block->stmts, lm__ast_statement_free_iterator, NULL);
+
+    _LM_FREE(block->stmts);
+    _LM_FREE(stmt);
+}
+
+lm__ast_if_t* lm__ast_if_alloc(
+        lm__ast_statement_t* condition,
+        lm__ast_statement_t* then_body,
+        lm__ast_statement_t* else_body) {
+    lm__ast_if_t* if_stmt = _LM_ALLOC(lm__ast_if_t);
+    lm_list_node_init(&if_stmt->list_node);
+
+    if_stmt->stmt_type = LM_AST_STATEMENT_TYPE_IF;
+    if_stmt->vtbl.free = lm__ast_if_free;
+
+    if_stmt->condition = condition;
+    if_stmt->then_body = then_body;
+    if_stmt->else_body = else_body;
+
+    return if_stmt;
+}
+
+void lm__ast_if_free(lm__ast_statement_t* stmt) {
+    lm__ast_if_t* if_stmt = (lm__ast_if_t*) stmt;
+
+    lm__ast_statement_free(if_stmt->condition);
+    lm__ast_statement_free(if_stmt->then_body);
+    lm__ast_statement_free(if_stmt->else_body);
+
+    _LM_FREE(stmt);
+}
+
 
 lm__ast_decl_t* lm__ast_decl_alloc(lm_string_t* name, lm__ast_statement_t* value_stmt) {
     lm__ast_decl_t* decl = _LM_ALLOC(lm__ast_decl_t);
