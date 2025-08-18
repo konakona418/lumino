@@ -84,6 +84,55 @@ void lm__ast_if_free(lm__ast_statement_t* stmt) {
     _LM_FREE(stmt);
 }
 
+lm__ast_while_t* lm__ast_while_alloc(lm__ast_statement_t* cond, lm__ast_statement_t* body) {
+    lm__ast_while_t* while_stmt = _LM_ALLOC(lm__ast_while_t);
+    lm_list_node_init(&while_stmt->list_node);
+
+    while_stmt->stmt_type = LM_AST_STATEMENT_TYPE_WHILE;
+    while_stmt->vtbl.free = lm__ast_while_free;
+
+    while_stmt->condition_stmt = cond;
+    while_stmt->body = body;
+
+    return while_stmt;
+}
+
+void lm__ast_while_free(lm__ast_statement_t* stmt) {
+    lm__ast_while_t* while_stmt = (lm__ast_while_t*) stmt;
+
+    lm__ast_statement_free(while_stmt->condition_stmt);
+    lm__ast_statement_free(while_stmt->body);
+
+    _LM_FREE(stmt);
+}
+
+lm__ast_break_t* lm__ast_break_alloc() {
+    lm__ast_break_t* break_stmt = _LM_ALLOC(lm__ast_break_t);
+    lm_list_node_init(&break_stmt->list_node);
+
+    break_stmt->stmt_type = LM_AST_STATEMENT_TYPE_BREAK;
+    break_stmt->vtbl.free = lm__ast_break_free;
+
+    return break_stmt;
+}
+
+void lm__ast_break_free(lm__ast_statement_t* stmt) {
+    _LM_FREE(stmt);
+}
+
+lm__ast_continue_t* lm__ast_continue_alloc() {
+    lm__ast_continue_t* continue_stmt = _LM_ALLOC(lm__ast_continue_t);
+    lm_list_node_init(&continue_stmt->list_node);
+
+    continue_stmt->stmt_type = LM_AST_STATEMENT_TYPE_CONTINUE;
+    continue_stmt->vtbl.free = lm__ast_continue_free;
+
+    return continue_stmt;
+}
+
+void lm__ast_continue_free(lm__ast_statement_t* stmt) {
+    _LM_FREE(stmt);
+}
 
 lm__ast_decl_t* lm__ast_decl_alloc(lm_string_t* name, lm__ast_statement_t* value_stmt) {
     lm__ast_decl_t* decl = _LM_ALLOC(lm__ast_decl_t);

@@ -238,6 +238,8 @@ lm_token_t lm_lexer_next_token(lm_lexer_t* lexer) {
         _LM_HANDLE_CHAR('/', LM_TOKEN_TYPE_OP_DIV)
         _LM_HANDLE_CHAR('%', LM_TOKEN_TYPE_OP_MOD)
         _LM_HANDLE_CHAR('^', LM_TOKEN_TYPE_OP_POW)
+        _LM_HANDLE_CHAR('<', LM_TOKEN_TYPE_OP_LESS_THAN)
+        _LM_HANDLE_CHAR('>', LM_TOKEN_TYPE_OP_GREATER_THAN)
         default: {
             char chr = lm__lexer_current_char(lexer);
             if (chr == '\0') {

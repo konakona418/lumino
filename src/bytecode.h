@@ -129,15 +129,52 @@ typedef struct lm__byte_code_generator_intern_string_ctx_s {
     void* ctx;
 } lm__byte_code_generator_intern_string_ctx_t;
 
+typedef struct lm__byte_code_generator_loop_context_offset_s {
+    lm_list_node_t list_node;
+    lm_int offset;
+} lm__byte_code_generator_loop_context_offset_t;
+
+lm__byte_code_generator_loop_context_offset_t* lm__byte_code_generator_loop_context_offset_alloc(lm_int offset);
+
+void lm__byte_code_generator_loop_context_offset_free(lm__byte_code_generator_loop_context_offset_t* offset);
+
+typedef struct lm__byte_code_generator_loop_context_s {
+    lm_list_node_t list_node;
+    lm_list_node_t continue_offset_head;
+    lm_list_node_t break_offset_head;
+} lm__byte_code_generator_loop_context_t;
+
+lm__byte_code_generator_loop_context_t* lm__byte_code_generator_loop_context_alloc();
+
+void lm__byte_code_generator_loop_context_free(lm__byte_code_generator_loop_context_t* ctx);
+
+void lm__byte_code_generator_loop_context_add_continue_offset(
+        lm__byte_code_generator_loop_context_t* loop_ctx,
+        lm_int offset);
+
+void lm__byte_code_generator_loop_context_add_break_offset(
+        lm__byte_code_generator_loop_context_t* loop_ctx,
+        lm_int offset);
+
 typedef struct lm__byte_code_generator_s {
     lm__byte_array_t* array;
     lm__ast_statement_t* program;
+
+    lm_list_node_t loop_ctx_head;
 
     lm__byte_code_generator_intern_string_ctx_t intern_string_ctx;
     lm__byte_code_generator_error_handler_pfn error_handler;
 } lm__byte_code_generator_t;
 
 void lm__byte_code_generator_emit_error(lm__byte_code_generator_t* generator, const char* msg);
+
+void lm__byte_code_generator_add_loop_context(lm__byte_code_generator_t* generator);
+
+void lm__byte_code_generator_remove_loop_context(lm__byte_code_generator_t* generator);
+
+void lm__byte_code_generator_add_break_to_loop_context(lm__byte_code_generator_t* generator, lm_int offset);
+
+void lm__byte_code_generator_add_continue_to_loop_context(lm__byte_code_generator_t* generator, lm_int offset);
 
 lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator_intern_string_ctx_t intern_string_ctx);
 
@@ -154,6 +191,12 @@ void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* gener
 void lm__byte_code_generator_generate_declaration(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
 
 void lm__byte_code_generator_generate_if_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
+
+void lm__byte_code_generator_generate_while_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
+
+void lm__byte_code_generator_generate_break_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
+
+void lm__byte_code_generator_generate_continue_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
 
 void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr);
 

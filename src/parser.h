@@ -23,6 +23,8 @@ typedef enum lm__parser_block_scope_type_e {
     LM__PARSER_BLOCK_SCOPE_TYPE_DONT_CARE,
     LM__PARSER_BLOCK_SCOPE_TYPE_PROGRAM,
     LM__PARSER_BLOCK_SCOPE_TYPE_BLOCK,
+    LM__PARSER_BLOCK_SCOPE_TYPE_LOOP,
+    LM__PARSER_BLOCK_SCOPE_TYPE_FUNC,
 } lm__parser_block_scope_type_t;
 
 typedef struct lm__parser_block_scope_variable_table_s {
@@ -77,6 +79,8 @@ lm__ast_program_t* lm_parser_parse(lm_parser_t* parser);
 void lm__parser_add_scope(lm_parser_t* parser, lm__parser_block_scope_type_t type);
 
 void lm__parser_remove_scope(lm_parser_t* parser);
+
+lm_bool lm__parser_in_scope(lm_parser_t* parser, lm__parser_block_scope_type_t type);
 
 void lm__parser_emit_scope_symbol(lm_parser_t* parser, const lm_string_t* name);
 

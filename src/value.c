@@ -103,11 +103,11 @@ lm_value_t lm_value_dispatch_logical(lm_value_t lhs, lm_value_t rhs, lm__opcode_
 
 lm_value_t lm_value_dispatch_comparison(lm_value_t lhs, lm_value_t rhs, lm__opcode_value_t opcode) {
     if (lhs.type == LM_VALUE_TYPE_INT && rhs.type == LM_VALUE_TYPE_INT) {
-        _LM_SELECT_COMPARE_OP(lm_value_make_boolean, lhs.v.int_value, lhs.v.int_value)
+        _LM_SELECT_COMPARE_OP(lm_value_make_boolean, lhs.v.int_value, rhs.v.int_value)
     } else if (lhs.type == LM_VALUE_TYPE_FLOAT && rhs.type == LM_VALUE_TYPE_FLOAT) {
-        _LM_SELECT_COMPARE_OP(lm_value_make_boolean, lhs.v.float_value, lhs.v.float_value)
+        _LM_SELECT_COMPARE_OP(lm_value_make_boolean, lhs.v.float_value, rhs.v.float_value)
     } else if (lhs.type == LM_VALUE_TYPE_INT && rhs.type == LM_VALUE_TYPE_FLOAT) {
-        _LM_SELECT_COMPARE_OP(lm_value_make_boolean, (float) lhs.v.int_value, lhs.v.float_value)
+        _LM_SELECT_COMPARE_OP(lm_value_make_boolean, (float) lhs.v.int_value, rhs.v.float_value)
     } else if (lhs.type == LM_VALUE_TYPE_FLOAT && rhs.type == LM_VALUE_TYPE_INT) {
         _LM_SELECT_COMPARE_OP(lm_value_make_boolean, lhs.v.float_value, (float) rhs.v.int_value)
     } else {

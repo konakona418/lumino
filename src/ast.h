@@ -88,13 +88,25 @@ typedef struct lm__ast_while_s {
     lm__ast_statement_t* body;
 } lm__ast_while_t;
 
+lm__ast_while_t* lm__ast_while_alloc(lm__ast_statement_t* cond, lm__ast_statement_t* body);
+
+void lm__ast_while_free(lm__ast_statement_t* stmt);
+
 typedef struct lm__ast_break_s {
     LM_AST_STATEMENT_HEADER
 } lm__ast_break_t;
 
+lm__ast_break_t* lm__ast_break_alloc();
+
+void lm__ast_break_free(lm__ast_statement_t* stmt);
+
 typedef struct lm__ast_continue_s {
     LM_AST_STATEMENT_HEADER
 } lm__ast_continue_t;
+
+lm__ast_continue_t* lm__ast_continue_alloc();
+
+void lm__ast_continue_free(lm__ast_statement_t* stmt);
 
 typedef struct lm__ast_func_s {
     LM_AST_STATEMENT_HEADER

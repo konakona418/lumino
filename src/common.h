@@ -260,6 +260,9 @@ typedef void (*lm__list_iterator_pfn)(lm_list_node_t* node, void* ctx);
 
 typedef lm_bool (*lm__list_iterator_predicated_pfn)(lm_list_node_t* node, void* ctx);
 
+#define LM_PREDICATE_CONTINUE 1
+#define LM_PREDICATE_STOP 0
+
 void lm_list_iterate(lm_list_node_t* head, lm__list_iterator_pfn iterator, void* ctx);
 
 void lm_list_iterate_predicated(lm_list_node_t* head, lm__list_iterator_predicated_pfn iterator, void* ctx);

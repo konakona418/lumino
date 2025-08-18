@@ -187,6 +187,31 @@ void lm__parser_remove_scope(lm_parser_t* parser) {
     lm__parser_block_scope_free(scope);
 }
 
+struct lm__parser_in_scope_iterator_data {
+    lm__parser_block_scope_type_t desired_scope_type;
+    lm_bool found;
+};
+
+lm_bool lm__parser_in_scope_iterator(lm_list_node_t* node, void* ctx) {
+    lm__parser_block_scope_t* scope = lm_list_entry(node, lm__parser_block_scope_t, list_node);
+    struct lm__parser_in_scope_iterator_data* data = _LM_CAST(struct lm__parser_in_scope_iterator_data, ctx);
+
+    if (scope->scope_type == data->desired_scope_type) {
+        data->found = LM_TRUE;
+        return LM_PREDICATE_CONTINUE;
+    } else if (scope->scope_type == LM__PARSER_BLOCK_SCOPE_TYPE_BLOCK ||
+               scope->scope_type == LM__PARSER_BLOCK_SCOPE_TYPE_DONT_CARE) {
+        return LM_PREDICATE_CONTINUE;
+    }
+    return LM_PREDICATE_STOP;
+}
+
+lm_bool lm__parser_in_scope(lm_parser_t* parser, lm__parser_block_scope_type_t type) {
+    struct lm__parser_in_scope_iterator_data data = {type, LM_FALSE};
+    lm_list_reverse_iterate_predicated(&parser->block_scope_head, lm__parser_in_scope_iterator, &data);
+    return data.found;
+}
+
 void lm__parser_emit_scope_symbol(lm_parser_t* parser, const lm_string_t* name) {
     lm_list_node_t* tail = lm_list_tail(&parser->block_scope_head);
     lm__parser_block_scope_t* scope = lm_list_entry(tail, lm__parser_block_scope_t, list_node);
@@ -677,7 +702,25 @@ lm__ast_statement_t* lm__parser_parse_if_statement(lm_parser_t* parser) {
 }
 
 lm__ast_statement_t* lm__parser_parse_while_statement(lm_parser_t* parser) {
-    return NULL;
+    lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_WHILE);
+
+    lm__parser_add_scope(parser, LM__PARSER_BLOCK_SCOPE_TYPE_LOOP);
+
+    lm__parser_consume(parser, LM_TOKEN_TYPE_L_PARENTHESIS);
+    lm__ast_statement_t* cond = _LM_CAST(lm__ast_statement_t, lm__parser_parse_simple_expression(parser));
+    lm__parser_consume(parser, LM_TOKEN_TYPE_R_PARENTHESIS);
+
+    lm__ast_statement_t* body = NULL;
+
+    if (lm__parser_current(parser).type == LM_TOKEN_TYPE_L_CURLY_BRACKET) {
+        body = lm__parser_parse_block(parser);
+    } else {
+        body = lm__parser_parse_statement(parser);
+    }
+
+    lm__parser_remove_scope(parser);
+
+    return _LM_CAST(lm__ast_statement_t, lm__ast_while_alloc(cond, body));
 }
 
 lm__ast_statement_t* lm__parser_parse_for_statement(lm_parser_t* parser) {
@@ -685,11 +728,23 @@ lm__ast_statement_t* lm__parser_parse_for_statement(lm_parser_t* parser) {
 }
 
 lm__ast_statement_t* lm__parser_parse_break_statement(lm_parser_t* parser) {
-    return NULL;
+    if (!lm__parser_in_scope(parser, LM__PARSER_BLOCK_SCOPE_TYPE_LOOP)) {
+        lm__parser_emit_error(parser, "break statement can only be used inside a loop");
+        return NULL;
+    }
+
+    lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_BREAK);
+    return _LM_CAST(lm__ast_statement_t, lm__ast_break_alloc());
 }
 
 lm__ast_statement_t* lm__parser_parse_continue_statement(lm_parser_t* parser) {
-    return NULL;
+    if (!lm__parser_in_scope(parser, LM__PARSER_BLOCK_SCOPE_TYPE_LOOP)) {
+        lm__parser_emit_error(parser, "continue statement can only be used inside a loop");
+        return NULL;
+    }
+
+    lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_CONTINUE);
+    return _LM_CAST(lm__ast_statement_t, lm__ast_continue_alloc());
 }
 
 lm__ast_statement_t* lm__parser_parse_return_statement(lm_parser_t* parser) {
