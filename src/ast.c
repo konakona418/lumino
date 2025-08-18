@@ -64,6 +64,7 @@ lm__ast_assign_expr_t* lm__ast_assign_expr_alloc(lm__ast_expression_t* lhs, lm__
 
     expr->stmt_type = LM_AST_STATEMENT_TYPE_EXPRESSION;
     expr->expr_type = LM_AST_EXPRESSION_TYPE_ASSIGN;
+    expr->result_discardable = LM_FALSE;
     expr->vtbl.free = lm__ast_assign_expr_free;
 
     expr->lhs = lhs;
@@ -89,6 +90,7 @@ lm__ast_binary_expr_t* lm__ast_binary_expr_alloc(
 
     binary_expr->stmt_type = LM_AST_STATEMENT_TYPE_EXPRESSION;
     binary_expr->expr_type = LM_AST_EXPRESSION_TYPE_BINARY;
+    binary_expr->result_discardable = LM_FALSE;
     binary_expr->vtbl.free = lm__ast_binary_expr_free;
 
     binary_expr->type = type;
@@ -115,6 +117,7 @@ lm__ast_unary_expr_t* lm__ast_unary_expr_alloc(
 
     unary_expr->stmt_type = LM_AST_STATEMENT_TYPE_EXPRESSION;
     unary_expr->expr_type = LM_AST_EXPRESSION_TYPE_UNARY;
+    unary_expr->result_discardable = LM_FALSE;
     unary_expr->vtbl.free = lm__ast_unary_expr_free;
 
     unary_expr->type = type;
@@ -137,6 +140,7 @@ lm__ast_literal_expr_t* lm__ast_literal_expr_alloc(
 
     literal_expr->stmt_type = LM_AST_STATEMENT_TYPE_EXPRESSION;
     literal_expr->expr_type = LM_AST_EXPRESSION_TYPE_LITERAL;
+    literal_expr->result_discardable = LM_FALSE;
     literal_expr->vtbl.free = lm__ast_literal_expr_free;
 
     literal_expr->type = type;
@@ -162,6 +166,7 @@ lm__ast_var_expr_t* lm__ast_var_expr_alloc(lm_string_t* name) {
 
     var_expr->stmt_type = LM_AST_STATEMENT_TYPE_EXPRESSION;
     var_expr->expr_type = LM_AST_EXPRESSION_TYPE_VAR;
+    var_expr->result_discardable = LM_FALSE;
     var_expr->vtbl.free = lm__ast_var_expr_free;
 
     var_expr->name = name;

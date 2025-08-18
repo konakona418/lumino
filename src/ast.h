@@ -133,8 +133,9 @@ typedef enum lm__ast_expression_type_e {
     LM_AST_EXPRESSION_TYPE_VAR
 } lm__ast_expression_type_t;
 
-#define LM_AST_EXPRESSION_HEADER \
-    lm__ast_expression_type_t expr_type;
+#define LM_AST_EXPRESSION_HEADER         \
+    lm__ast_expression_type_t expr_type; \
+    lm_bool result_discardable;
 
 typedef struct lm__ast_expression_s {
     LM_AST_STATEMENT_HEADER

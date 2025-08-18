@@ -156,6 +156,8 @@ lm_value_t lm__operand_stack_pop(lm__operand_stack_t* stack);
 
 void lm__operand_stack_peek(lm__operand_stack_t* stack);
 
+lm_bool lm__operand_stack_is_empty(lm__operand_stack_t* stack);
+
 typedef struct lm_context_s {
     lm_list_node_t list_node;
     lm_runtime_t* runtime;
@@ -178,4 +180,34 @@ void lm__context_push_frame(lm_context_t* context, uint8_t* pc);
 
 void lm__context_pop_frame(lm_context_t* context);
 
-void lm__context_generate(lm_context_t* context, lm__ast_statement_t* program);
+void lm__context_generate(lm_context_t* context, lm__ast_statement_t* program, lm_bool eval_mode);
+
+void lm__context_push_operand(lm_context_t* context, lm_value_t value);
+
+lm_value_t lm__context_pop_operand(lm_context_t* context);
+
+void lm__context_peek_operand(lm_context_t* context, lm_value_t* value);
+
+lm__stack_frame_t* lm__context_get_current_frame(lm_context_t* context);
+
+lm__opcode_value_t lm__context_consume_instr(lm_context_t* context);
+
+uint8_t lm__context_consume_byte(lm_context_t* context);
+
+lm_int lm__context_consume_int(lm_context_t* context);
+
+lm_float lm__context_consume_float(lm_context_t* context);
+
+lm_atom_t lm__context_consume_atom(lm_context_t* context);
+
+void lm__context_run(lm_context_t* context);
+
+typedef enum lm_eval_scope_e {
+    LM_EVAL_SCOPE_NONE = 0,
+    LM_EVAL_SCOPE_GLOBAL,
+    LM_EVAL_SCOPE_LOCAL,
+} lm_eval_scope_t;
+
+lm__ast_statement_t* lm__context_generate_ast(lm_context_t* context, const char* str, const char* file_name);
+
+lm_value_t lm_eval(lm_context_t* context, const char* str, lm_eval_scope_t scope);

@@ -159,7 +159,12 @@ lm_atom_t lm_runtime_allocate_atom(lm_runtime_t* runtime, const lm_string_t* str
 }
 
 lm__stack_frame_var_cell_t* lm__stack_frame_var_cell_alloc() {
-    return _LM_ALLOC(lm__stack_frame_var_cell_t);
+    lm__stack_frame_var_cell_t* cell = _LM_ALLOC(lm__stack_frame_var_cell_t);
+
+    lm_list_node_init(&cell->list_node);
+    cell->local_vars_count = 0;
+
+    return cell;
 }
 
 void lm__stack_frame_var_cell_free(lm__stack_frame_var_cell_t* cell) {
@@ -237,6 +242,9 @@ lm__stack_frame_t* lm__stack_frame_alloc(lm_context_t* context, uint8_t* return_
     lm_list_node_init(&frame->list_node);
     lm_list_node_init(&frame->var_cells_head);
 
+    lm__stack_frame_var_cell_t* cell = lm__stack_frame_var_cell_alloc();
+    lm_list_add_tail(&frame->var_cells_head, &cell->list_node);
+
     return frame;
 }
 
@@ -298,23 +306,27 @@ void lm__operand_stack_free(lm__operand_stack_t* stack) {
 }
 
 void lm__operand_stack_push(lm__operand_stack_t* stack, lm_value_t value) {
-    lm__operand_stack_cell_t* tail =
-            lm_list_entry(lm_list_tail(&stack->cells_head),
-                          lm__operand_stack_cell_t, list_node);
+    lm__operand_stack_cell_t* tail = NULL;
+
+    if (lm_list_empty(&stack->cells_head)) {
+        tail = lm__operand_stack_cell_alloc();
+        lm_list_add_tail(&tail->list_node, &stack->cells_head);
+    } else {
+        tail = lm_list_entry(lm_list_tail(&stack->cells_head),
+                             lm__operand_stack_cell_t, list_node);
+    }
 
     if (tail->size == LM_RUNTIME_STACK_CELL_SIZE) {
         tail = lm__operand_stack_cell_alloc();
         lm_list_add_tail(&stack->cells_head, &tail->list_node);
-
-        tail->values[0] = value;
-    } else {
-        tail->values[tail->size] = value;
     }
 
-    tail->size++;
+    tail->values[tail->size++] = value;
 }
 
 lm_value_t lm__operand_stack_pop(lm__operand_stack_t* stack) {
+    _LM_ASSERT(!lm_list_empty(&stack->cells_head), "stack is empty");
+
     lm__operand_stack_cell_t* tail =
             lm_list_entry(lm_list_tail(&stack->cells_head),
                           lm__operand_stack_cell_t, list_node);
@@ -347,6 +359,18 @@ void lm__operand_stack_peek(lm__operand_stack_t* stack) {
     lm__operand_stack_push(stack, value);
 }
 
+lm_bool lm__operand_stack_is_empty(lm__operand_stack_t* stack) {
+    if (lm_list_empty(&stack->cells_head)) {
+        return LM_TRUE;
+    }
+
+    lm__operand_stack_cell_t* tail =
+            lm_list_entry(lm_list_tail(&stack->cells_head),
+                          lm__operand_stack_cell_t, list_node);
+
+    return tail->size == 0;
+}
+
 lm_atom_t lm__context_alloc_atom(lm_string_t* str, void* ctx) {
     lm_runtime_t* runtime = ctx;
     return lm_runtime_allocate_atom(runtime, str);
@@ -370,13 +394,15 @@ lm_context_t* lm_context_alloc(lm_runtime_t* runtime) {
 
     context->code_generator = lm__byte_code_generator_alloc(generator_ctx);
 
+    lm__context_push_frame(context, context->pc);
+
     // todo: context->local_allocator = runtime->local_allocator;
 
     return context;
 }
 
 void lm_context_free(lm_context_t* context) {
-    // todo: detach stack frames
+    lm__context_pop_frame(context);
 
     lm__operand_stack_free(context->operand_stack);
     lm__byte_code_generator_free(context->code_generator);
@@ -399,10 +425,228 @@ void lm__context_pop_frame(lm_context_t* context) {
     lm__stack_frame_free(frame);
 }
 
-void lm__context_generate(lm_context_t* context, lm__ast_statement_t* program) {
+void lm__context_generate(lm_context_t* context, lm__ast_statement_t* program, lm_bool eval_mode) {
     //lm__byte_code_generator_clear(context->code_generator);
-    lm__byte_code_generator_generate_program(context->code_generator, program);
+    lm__byte_code_generator_generate(context->code_generator, program, eval_mode);
     const lm__byte_array_t* array = lm__byte_code_generator_get_array(context->code_generator);
 
     lm__byte_array_push_array(context->code, array->data, array->size);
+}
+
+void lm__context_push_operand(lm_context_t* context, lm_value_t value) {
+    lm__operand_stack_push(context->operand_stack, value);
+}
+
+lm_value_t lm__context_pop_operand(lm_context_t* context) {
+    return lm__operand_stack_pop(context->operand_stack);
+}
+
+void lm__context_peek_operand(lm_context_t* context, lm_value_t* value) {
+    lm__operand_stack_peek(context->operand_stack);
+}
+
+lm__stack_frame_t* lm__context_get_current_frame(lm_context_t* context) {
+    return lm_list_entry(lm_list_tail(&context->stack_frame_head), lm__stack_frame_t, list_node);
+}
+
+lm__opcode_value_t lm__context_consume_instr(lm_context_t* context) {
+    return (lm__opcode_value_t) lm__context_consume_byte(context);
+}
+
+uint8_t lm__context_consume_byte(lm_context_t* context) {
+    return *_LM_CAST(uint8_t, context->pc++);
+}
+
+lm_int lm__context_consume_int(lm_context_t* context) {
+    lm_int value = *_LM_CAST(lm_int, context->pc);
+    context->pc += sizeof(lm_int);
+    return value;
+}
+
+lm_float lm__context_consume_float(lm_context_t* context) {
+    lm_float value = *_LM_CAST(lm_float, context->pc);
+    context->pc += sizeof(lm_float);
+    return value;
+}
+
+lm_atom_t lm__context_consume_atom(lm_context_t* context) {
+    lm_atom_t value = *_LM_CAST(lm_atom_t, context->pc);
+    context->pc += sizeof(lm_atom_t);
+    return value;
+}
+
+void lm__context_run(lm_context_t* context) {
+    uint8_t* terminal = lm__byte_array_data(context->code) + lm__byte_array_size(context->code);
+    context->pc = lm__byte_array_data(context->code);
+    while (context->pc != terminal) {
+        lm__opcode_value_t opcode = lm__context_consume_instr(context);
+        switch (opcode) {
+            case LM__OPCODE_NOP: {
+                continue;
+            }
+            case LM__OPCODE_HALT: {
+                return;
+            }
+            case LM__POP: {
+                lm_value_t value = lm__context_pop_operand(context);
+                // todo: free value
+                break;
+            }
+            case LM__LOAD_UNDEFINED: {
+                lm__context_push_operand(context, lm_value_make_undefined());
+                break;
+            }
+            case LM__LOAD_NULL: {
+                lm__context_push_operand(context, lm_value_make_null());
+                break;
+            }
+            case LM__LOAD_BOOL: {
+                lm_bool value = lm__context_consume_byte(context);
+                lm__context_push_operand(context, lm_value_make_boolean(value));
+                break;
+            }
+            case LM__LOAD_INT: {
+                lm_int value = lm__context_consume_int(context);
+                lm__context_push_operand(context, lm_value_make_int(value));
+                break;
+            }
+            case LM__LOAD_FLOAT: {
+                lm_float value = lm__context_consume_float(context);
+                lm__context_push_operand(context, lm_value_make_float(value));
+                break;
+            }
+            case LM__LOAD_STRING: {
+                lm_atom_t name = lm__context_consume_atom(context);
+                // todo: intern string
+                break;
+            }
+            case LM__DECL_VAR: {
+                lm_atom_t name = lm__context_consume_atom(context);
+                lm__stack_frame_add_var(lm__context_get_current_frame(context), name);
+                break;
+            }
+            case LM__LOAD_VAR: {
+                lm_atom_t name = lm__context_consume_atom(context);
+                lm_value_t* var = lm__stack_frame_get_var(lm__context_get_current_frame(context), name);
+                lm__context_push_operand(context, *var);
+                break;
+            }
+            case LM__STORE_VAR: {
+                lm_atom_t name = lm__context_consume_atom(context);
+                lm_value_t* var = lm__stack_frame_get_var(lm__context_get_current_frame(context), name);
+                lm_value_t value = lm__context_pop_operand(context);
+
+                *var = value;
+                break;
+            }
+            case LM__OP_ADD:
+            case LM__OP_SUB:
+            case LM__OP_MUL:
+            case LM__OP_DIV:
+            case LM__OP_MOD: {
+                lm_value_t rhs = lm__context_pop_operand(context);
+                lm_value_t lhs = lm__context_pop_operand(context);
+
+                lm_value_t result = lm_value_dispatch_arith(lhs, rhs, opcode);
+                lm__context_push_operand(context, result);
+
+                // todo: free lhs and rhs if needed
+
+                break;
+            }
+            case LM__OP_AND:
+            case LM__OP_OR: {
+                lm_value_t rhs = lm__context_pop_operand(context);
+                lm_value_t lhs = lm__context_pop_operand(context);
+
+                lm_value_t result = lm_value_dispatch_logical(lhs, rhs, opcode);
+                lm__context_push_operand(context, result);
+
+                break;
+            }
+            case LM__OP_NEG:
+            case LM__OP_NOT: {
+                lm_value_t rhs = lm__context_pop_operand(context);
+
+                lm_value_t result = lm_value_dispatch_unary(rhs, opcode);
+                lm__context_push_operand(context, result);
+
+                break;
+            }
+            case LM__OP_EQ:
+            case LM__OP_NEQ:
+            case LM__OP_LT:
+            case LM__OP_LTE:
+            case LM__OP_GT:
+            case LM__OP_GTE: {
+                lm_value_t rhs = lm__context_pop_operand(context);
+                lm_value_t lhs = lm__context_pop_operand(context);
+
+                lm_value_t result = lm_value_dispatch_comparison(lhs, rhs, opcode);
+                lm__context_push_operand(context, result);
+
+                break;
+            }
+            case LM__OP_JMP: {
+                lm_int offset = lm__context_consume_int(context);
+                context->pc += offset;
+
+                break;
+            }
+            case LM__OP_JMP_IF_FALSE: {
+                lm_int offset = lm__context_consume_int(context);
+
+                lm_value_t value = lm__context_pop_operand(context);
+                value = lm_value_to_boolean(value);
+
+                if (!value.v.bool_value) {
+                    context->pc += offset;
+                }
+                break;
+            }
+            case LM__OP_JMP_IF_TRUE: {
+                lm_int offset = lm__context_consume_int(context);
+
+                lm_value_t value = lm__context_pop_operand(context);
+                value = lm_value_to_boolean(value);
+
+                if (value.v.bool_value) {
+                    context->pc += offset;
+                }
+                break;
+            }
+            case LM__OP_CALL:
+            case LM__OP_RET:
+            case LM__PUSH:
+                _LM_ASSERT(0, "not implemented");
+        }
+    }
+}
+
+lm__ast_statement_t* lm__context_generate_ast(lm_context_t* context, const char* str, const char* file_name) {
+    lm_lexer_t* lexer = lm_lexer_alloc(str, file_name);
+    lm_parser_t* parser = lm_parser_alloc(lexer);
+
+    lm__ast_statement_t* program = _LM_CAST(lm__ast_statement_t, lm_parser_parse(parser));
+
+    lm_parser_free(parser);
+    lm_lexer_free(lexer);
+
+    return program;
+}
+
+lm_value_t lm_eval(lm_context_t* context, const char* str, lm_eval_scope_t scope) {
+    lm__ast_statement_t* program = lm__context_generate_ast(context, str, "<eval>");
+    lm__context_generate(context, program, LM_TRUE);
+    lm__ast_statement_free(program);
+
+    lm_print_byte_code(context->code->data, context->code->size);
+
+    lm__context_run(context);
+
+    if (!lm__operand_stack_is_empty(context->operand_stack)) {
+        return lm__operand_stack_pop(context->operand_stack);
+    }
+
+    return lm_value_make_undefined();
 }

@@ -138,11 +138,23 @@ void lm__byte_code_generator_clear(lm__byte_code_generator_t* generator) {
     generator->program = NULL;
 }
 
+void lm__byte_code_generator_hack_last_expr(lm__ast_program_t* program) {
+    lm__ast_statement_t* stmt = lm_list_entry(lm_list_tail(program->stmts), lm__ast_statement_t, list_node);
+    if (stmt->stmt_type == LM_AST_STATEMENT_TYPE_EXPRESSION) {
+        lm__ast_expression_t* expr = _LM_CAST(lm__ast_expression_t, stmt);
+        expr->result_discardable = LM_FALSE;
+    }
+}
+
 void lm__byte_code_generator_generate(
         lm__byte_code_generator_t* generator,
-        lm__ast_statement_t* program) {
+        lm__ast_statement_t* program, lm_bool eval_mode) {
+    if (eval_mode) {
+        lm__byte_code_generator_hack_last_expr(_LM_CAST(lm__ast_program_t, program));
+    }
+
     generator->program = program;
-    lm__byte_code_generator_generate_program(generator, generator->program);
+    lm__byte_code_generator_generate_program(generator, generator->program, eval_mode);
 }
 
 const lm__byte_array_t* lm__byte_code_generator_get_array(lm__byte_code_generator_t* generator) {
@@ -156,11 +168,10 @@ void lm__byte_code_generator_generate_statement_iterator(lm_list_node_t* node, v
     lm__byte_code_generator_generate_statement(generator, stmt);
 }
 
-void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
+void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt, lm_bool eval_mode) {
     lm__ast_program_t* program = _LM_CAST(lm__ast_program_t, stmt);
     lm_list_iterate(program->stmts, lm__byte_code_generator_generate_statement_iterator, generator);
-
-    lm__byte_code_generator_emit(generator, LM__OPCODE_HALT);
+    // lm__byte_code_generator_emit(generator, LM__OPCODE_HALT);
 }
 
 void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
@@ -226,6 +237,10 @@ void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* gene
             lm__byte_code_generator_emit_error(generator, "unknown expression type");
             break;
         }
+    }
+
+    if (expr->result_discardable) {
+        lm__byte_code_generator_emit(generator, LM__POP);
     }
 }
 
@@ -376,9 +391,9 @@ void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_
     lm__byte_array_push_u32(generator->array, &atom);
 }
 
-void lm_print_byte_code(uint8_t* byte_code) {
+void lm_print_byte_code(uint8_t* byte_code, size_t size) {
     uint8_t* idx = byte_code;
-    while (*idx != LM__OPCODE_HALT) {
+    while (idx != byte_code + size) {
         switch ((lm__opcode_value_t) *idx) {
             case LM__OPCODE_NOP: {
                 printf("NOP\n");

@@ -25,9 +25,19 @@
 #define _LM_HAS_STATEMENT_EXPR_EXTENSION
 #endif
 
+#ifdef LM_DEBUG
+
 #define _LM_ASSERT(_cond, _msg) (assert(((_msg) && (_cond))))
 #define _LM_ASSERT_NOT_NULL(_ptr, _msg) _LM_ASSERT((_ptr), _msg)
 #define _LM_ASSERT_NULL(_ptr, _msg) _LM_ASSERT((_ptr == NULL), _msg)
+
+#else
+
+#define _LM_ASSERT(_cond, _msg)
+#define _LM_ASSERT_NOT_NULL(_ptr, _msg)
+#define _LM_ASSERT_NULL(_ptr, _msg)
+
+#endif
 
 struct lm_error_s;
 
@@ -235,6 +245,8 @@ void lm_list_node_free(lm_list_node_t* node);
 void lm_list_add_head(lm_list_node_t* list, lm_list_node_t* node);
 
 void lm_list_add_tail(lm_list_node_t* list, lm_list_node_t* node);
+
+lm_bool lm_list_empty(lm_list_node_t* list);
 
 lm_list_node_t* lm_list_head(lm_list_node_t* list);
 

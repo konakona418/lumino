@@ -97,9 +97,9 @@ void lm__byte_array_pop_array(lm__byte_array_t* array, uint8_t* values, size_t s
 #define lm__byte_array_pop_i32(array, value) lm__byte_array_pop_t(array, int32_t, value)
 #define lm__byte_array_pop_f32(array, value) lm__byte_array_pop_t(array, float, value)
 
-static uint8_t* lm__byte_array_data(lm__byte_array_t* array);
+uint8_t* lm__byte_array_data(lm__byte_array_t* array);
 
-static size_t lm__byte_array_size(lm__byte_array_t* array);
+size_t lm__byte_array_size(lm__byte_array_t* array);
 
 typedef struct lm_byte_code_error_s {
     LM_ERROR_HEADER
@@ -135,11 +135,11 @@ lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator
 
 void lm__byte_code_generator_clear(lm__byte_code_generator_t* generator);
 
-void lm__byte_code_generator_generate(lm__byte_code_generator_t* generator, lm__ast_statement_t* program);
+void lm__byte_code_generator_generate(lm__byte_code_generator_t* generator, lm__ast_statement_t* program, lm_bool eval_mode);
 
 const lm__byte_array_t* lm__byte_code_generator_get_array(lm__byte_code_generator_t* generator);
 
-void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
+void lm__byte_code_generator_generate_program(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt, lm_bool eval_mode);
 
 void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt);
 
@@ -173,4 +173,4 @@ void lm__byte_code_generator_emit_f32(lm__byte_code_generator_t* generator, floa
 
 void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_atom_t atom);
 
-void lm_print_byte_code(uint8_t* byte_code);
+void lm_print_byte_code(uint8_t* byte_code, size_t size);

@@ -118,6 +118,8 @@ lm__ast_expression_t* lm__parser_parse_expression(lm_parser_t* parser);
 
 lm__ast_expression_t* lm__parser_parse_assign_expression(lm_parser_t* parser);
 
+lm__ast_expression_t* lm__parser_parse_simple_expression(lm_parser_t* parser);
+
 lm__ast_expression_t* lm__parser_parse_logical_and_expression(lm_parser_t* parser);
 
 lm__ast_expression_t* lm__parser_parse_logical_or_expression(lm_parser_t* parser);

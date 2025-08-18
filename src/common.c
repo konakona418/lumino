@@ -54,6 +54,8 @@ lm_bool lm__alloc_counter_is_zero() { return LM_TRUE; }
 
 void* lm__alloc(size_t size) { return malloc(size); }
 
+void* lm__calloc(size_t type_size, size_t size) { return calloc(type_size, size); }
+
 void lm__free(void* ptr) { free(ptr); }
 
 #endif
@@ -286,6 +288,10 @@ void lm_list_add_tail(lm_list_node_t* list, lm_list_node_t* node) {
 
     node->next = list;
     orig_prev->next = node;
+}
+
+lm_bool lm_list_empty(lm_list_node_t* list) {
+    return list->next == list && list->prev == list;
 }
 
 lm_list_node_t* lm_list_head(lm_list_node_t* list) {

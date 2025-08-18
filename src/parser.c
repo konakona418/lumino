@@ -324,16 +324,25 @@ lm__ast_expression_t* lm__parser_parse_expression(lm_parser_t* parser) {
 }
 
 lm__ast_expression_t* lm__parser_parse_assign_expression(lm_parser_t* parser) {
-    lm__ast_expression_t* lhs = lm__parser_parse_logical_and_expression(parser);
+    lm__ast_expression_t* lhs = lm__parser_parse_simple_expression(parser);
 
     if (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_ASSIGN) {
         lm__parser_next(parser);
-        lm__ast_expression_t* rhs = lm__parser_parse_logical_and_expression(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_simple_expression(parser);
 
-        return _LM_CAST(lm__ast_expression_t, lm__ast_assign_expr_alloc(lhs, rhs));
+        lm__ast_assign_expr_t* assign_expr = lm__ast_assign_expr_alloc(lhs, rhs);
+        assign_expr->result_discardable = LM_FALSE;
+
+        return _LM_CAST(lm__ast_expression_t, assign_expr);
     }
 
+    lhs->result_discardable = LM_TRUE;
+
     return lhs;
+}
+
+lm__ast_expression_t* lm__parser_parse_simple_expression(lm_parser_t* parser) {
+    return lm__parser_parse_logical_and_expression(parser);
 }
 
 lm__ast_expression_t* lm__parser_parse_logical_and_expression(lm_parser_t* parser) {
@@ -609,7 +618,7 @@ lm__ast_statement_t* lm__parser_parse_decl(lm_parser_t* parser) {
 
     if (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_ASSIGN) {
         lm__parser_consume(parser, LM_TOKEN_TYPE_OP_ASSIGN);
-        lm__ast_statement_t* value = _LM_CAST(lm__ast_statement_t, lm__parser_parse_expression(parser));
+        lm__ast_statement_t* value = _LM_CAST(lm__ast_statement_t, lm__parser_parse_simple_expression(parser));
 
         lm__parser_consume(parser, LM_TOKEN_TYPE_SEMICOLON);
 
