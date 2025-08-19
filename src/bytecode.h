@@ -83,8 +83,6 @@ void lm__byte_array_push_array(lm__byte_array_t* array, uint8_t* values, size_t 
 
 #define lm__byte_array_push_i32(array, value) lm__byte_array_push_t(array, int32_t, value)
 #define lm__byte_array_push_f32(array, value) lm__byte_array_push_t(array, float, value)
-#define lm__byte_array_push_size_t(array, value) lm__byte_array_push_t(array, size_t, value)
-#define lm__byte_array_push_ssize_t(array, value) lm__byte_array_push_t(array, ssize_t, value)
 
 uint8_t lm__byte_array_pop(lm__byte_array_t* array);
 
@@ -108,12 +106,6 @@ uint8_t* lm__byte_array_at(lm__byte_array_t* array, size_t index);
 
 #define lm__byte_array_at_float(array, index) \
     _LM_CAST(lm_float, lm__byte_array_at(array, index))
-
-#define lm__byte_array_at_size_t(array, index) \
-    _LM_CAST(size_t, lm__byte_array_at(array, index))
-
-#define lm__byte_array_at_ssize_t(array, index) \
-    _LM_CAST(ssize_t, lm__byte_array_at(array, index))
 
 size_t lm__byte_array_size(lm__byte_array_t* array);
 
@@ -139,10 +131,10 @@ typedef struct lm__byte_code_generator_intern_string_ctx_s {
 
 typedef struct lm__byte_code_generator_loop_context_offset_s {
     lm_list_node_t list_node;
-    lm_ssize_t offset;
+    lm_int offset;
 } lm__byte_code_generator_loop_context_offset_t;
 
-lm__byte_code_generator_loop_context_offset_t* lm__byte_code_generator_loop_context_offset_alloc(lm_ssize_t offset);
+lm__byte_code_generator_loop_context_offset_t* lm__byte_code_generator_loop_context_offset_alloc(lm_int offset);
 
 void lm__byte_code_generator_loop_context_offset_free(lm__byte_code_generator_loop_context_offset_t* offset);
 
@@ -158,11 +150,11 @@ void lm__byte_code_generator_loop_context_free(lm__byte_code_generator_loop_cont
 
 void lm__byte_code_generator_loop_context_add_continue_offset(
         lm__byte_code_generator_loop_context_t* loop_ctx,
-        lm_ssize_t offset);
+        lm_int offset);
 
 void lm__byte_code_generator_loop_context_add_break_offset(
         lm__byte_code_generator_loop_context_t* loop_ctx,
-        lm_ssize_t offset);
+        lm_int offset);
 
 typedef struct lm__byte_code_generator_s {
     lm__byte_array_t* array;
@@ -180,9 +172,9 @@ void lm__byte_code_generator_add_loop_context(lm__byte_code_generator_t* generat
 
 void lm__byte_code_generator_remove_loop_context(lm__byte_code_generator_t* generator);
 
-void lm__byte_code_generator_add_break_to_loop_context(lm__byte_code_generator_t* generator, lm_ssize_t offset);
+void lm__byte_code_generator_add_break_to_loop_context(lm__byte_code_generator_t* generator, lm_int offset);
 
-void lm__byte_code_generator_add_continue_to_loop_context(lm__byte_code_generator_t* generator, lm_ssize_t offset);
+void lm__byte_code_generator_add_continue_to_loop_context(lm__byte_code_generator_t* generator, lm_int offset);
 
 lm__byte_code_generator_t* lm__byte_code_generator_alloc(lm__byte_code_generator_intern_string_ctx_t intern_string_ctx);
 
@@ -231,10 +223,6 @@ void lm__byte_code_generator_emit_byte(lm__byte_code_generator_t* generator, uin
 void lm__byte_code_generator_emit_i32(lm__byte_code_generator_t* generator, int32_t value);
 
 void lm__byte_code_generator_emit_f32(lm__byte_code_generator_t* generator, float value);
-
-void lm__byte_code_generator_emit_size_t(lm__byte_code_generator_t* generator, size_t value);
-
-void lm__byte_code_generator_emit_ssize_t(lm__byte_code_generator_t* generator, ssize_t value);
 
 void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_atom_t atom);
 

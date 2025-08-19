@@ -479,18 +479,6 @@ lm_atom_t lm__context_consume_atom(lm_context_t* context) {
     return value;
 }
 
-lm_ssize_t lm__context_consume_ssize_t(lm_context_t* context) {
-    lm_ssize_t value = *_LM_CAST(lm_ssize_t, context->pc);
-    context->pc += sizeof(lm_ssize_t);
-    return value;
-}
-
-lm_size_t lm__context_consume_size_t(lm_context_t* context) {
-    lm_size_t value = *_LM_CAST(lm_size_t, context->pc);
-    context->pc += sizeof(lm_size_t);
-    return value;
-}
-
 void lm__context_run(lm_context_t* context) {
     uint8_t* terminal = lm__byte_array_data(context->code) + lm__byte_array_size(context->code);
     context->pc = lm__byte_array_data(context->code);
@@ -604,13 +592,13 @@ void lm__context_run(lm_context_t* context) {
                 break;
             }
             case LM__OP_JMP: {
-                lm_ssize_t offset = lm__context_consume_ssize_t(context);
+                lm_int offset = lm__context_consume_int(context);
                 context->pc += offset;
 
                 break;
             }
             case LM__OP_JMP_IF_FALSE: {
-                lm_ssize_t offset = lm__context_consume_ssize_t(context);
+                lm_int offset = lm__context_consume_int(context);
 
                 lm_value_t value = lm__context_pop_operand(context);
                 value = lm_value_to_boolean(value);
@@ -621,7 +609,7 @@ void lm__context_run(lm_context_t* context) {
                 break;
             }
             case LM__OP_JMP_IF_TRUE: {
-                lm_ssize_t offset = lm__context_consume_ssize_t(context);
+                lm_int offset = lm__context_consume_int(context);
 
                 lm_value_t value = lm__context_pop_operand(context);
                 value = lm_value_to_boolean(value);

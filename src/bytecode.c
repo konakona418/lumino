@@ -117,7 +117,7 @@ lm_byte_code_error_t* lm__byte_code_error_alloc(const char* msg) {
     return error;
 }
 
-lm__byte_code_generator_loop_context_offset_t* lm__byte_code_generator_loop_context_offset_alloc(lm_ssize_t offset) {
+lm__byte_code_generator_loop_context_offset_t* lm__byte_code_generator_loop_context_offset_alloc(lm_int offset) {
     lm__byte_code_generator_loop_context_offset_t* offset_node = _LM_ALLOC(lm__byte_code_generator_loop_context_offset_t);
     lm_list_node_init(&offset_node->list_node);
     offset_node->offset = offset;
@@ -153,7 +153,7 @@ void lm__byte_code_generator_loop_context_free(lm__byte_code_generator_loop_cont
 
 void lm__byte_code_generator_loop_context_add_continue_offset(
         lm__byte_code_generator_loop_context_t* loop_ctx,
-        lm_ssize_t offset) {
+        lm_int offset) {
     lm__byte_code_generator_loop_context_offset_t* offset_node =
             lm__byte_code_generator_loop_context_offset_alloc(offset);
     lm_list_add_tail(&loop_ctx->continue_offset_head, &offset_node->list_node);
@@ -161,7 +161,7 @@ void lm__byte_code_generator_loop_context_add_continue_offset(
 
 void lm__byte_code_generator_loop_context_add_break_offset(
         lm__byte_code_generator_loop_context_t* loop_ctx,
-        lm_ssize_t offset) {
+        lm_int offset) {
     lm__byte_code_generator_loop_context_offset_t* offset_node =
             lm__byte_code_generator_loop_context_offset_alloc(offset);
     lm_list_add_tail(&loop_ctx->break_offset_head, &offset_node->list_node);
@@ -189,7 +189,7 @@ void lm__byte_code_generator_remove_loop_context(lm__byte_code_generator_t* gene
             lm_list_entry(node, lm__byte_code_generator_loop_context_t, list_node));
 }
 
-void lm__byte_code_generator_add_break_to_loop_context(lm__byte_code_generator_t* generator, lm_ssize_t offset) {
+void lm__byte_code_generator_add_break_to_loop_context(lm__byte_code_generator_t* generator, lm_int offset) {
     _LM_ASSERT(!lm_list_empty(&generator->loop_ctx_head), "no loop context");
     lm__byte_code_generator_loop_context_add_break_offset(
             lm_list_entry(
@@ -198,7 +198,7 @@ void lm__byte_code_generator_add_break_to_loop_context(lm__byte_code_generator_t
             offset);
 }
 
-void lm__byte_code_generator_add_continue_to_loop_context(lm__byte_code_generator_t* generator, lm_ssize_t offset) {
+void lm__byte_code_generator_add_continue_to_loop_context(lm__byte_code_generator_t* generator, lm_int offset) {
     _LM_ASSERT(!lm_list_empty(&generator->loop_ctx_head), "no loop context");
     lm__byte_code_generator_loop_context_add_continue_offset(
             lm_list_entry(
@@ -325,7 +325,7 @@ void lm__byte_code_generator_generate_if_stmt(lm__byte_code_generator_t* generat
     lm__byte_code_generator_emit(generator, LM__OP_JMP_IF_FALSE);
 
     size_t jump_to_else_param_pos = lm__byte_array_size(generator->array);
-    lm__byte_code_generator_emit_ssize_t(generator, 0);
+    lm__byte_code_generator_emit_i32(generator, 0);
     size_t jump_to_else_begin_pos = lm__byte_array_size(generator->array);
 
     lm__byte_code_generator_generate_statement(generator, if_stmt->then_body);
@@ -334,26 +334,26 @@ void lm__byte_code_generator_generate_if_stmt(lm__byte_code_generator_t* generat
         lm__byte_code_generator_emit(generator, LM__OP_JMP);
 
         size_t jump_to_end_param_pos = lm__byte_array_size(generator->array);
-        lm__byte_code_generator_emit_ssize_t(generator, 0);
+        lm__byte_code_generator_emit_i32(generator, 0);
         size_t jump_to_end_begin_pos = lm__byte_array_size(generator->array);
 
         ssize_t jump_over_then_body_offset = lm__byte_array_size(generator->array) - jump_to_else_begin_pos;
-        *lm__byte_array_at_ssize_t(generator->array, jump_to_else_param_pos) = jump_over_then_body_offset;
+        *lm__byte_array_at_int(generator->array, jump_to_else_param_pos) = jump_over_then_body_offset;
 
         lm__byte_code_generator_generate_statement(generator, if_stmt->else_body);
 
         ssize_t jump_to_end_offset = lm__byte_array_size(generator->array) - jump_to_end_begin_pos;
 
-        *lm__byte_array_at_ssize_t(generator->array, jump_to_end_param_pos) = jump_to_end_offset;
+        *lm__byte_array_at_int(generator->array, jump_to_end_param_pos) = jump_to_end_offset;
     } else {
         ssize_t jump_to_end_offset = lm__byte_array_size(generator->array) - jump_to_else_begin_pos;
-        *lm__byte_array_at_ssize_t(generator->array, jump_to_else_param_pos) = jump_to_end_offset;
+        *lm__byte_array_at_int(generator->array, jump_to_else_param_pos) = jump_to_end_offset;
     }
 }
 
 struct lm__byte_code_generator_loop_control_map_iterator_data {
     lm__byte_array_t* array;
-    lm_ssize_t offset;
+    lm_int offset;
 };
 
 void lm__byte_code_generator_loop_control_map_iterator(lm_list_node_t* node, void* ctx) {
@@ -362,8 +362,8 @@ void lm__byte_code_generator_loop_control_map_iterator(lm_list_node_t* node, voi
 
     struct lm__byte_code_generator_loop_control_map_iterator_data* data = ctx;
 
-    *lm__byte_array_at_ssize_t(data->array, ctx_offset->offset) =
-            data->offset - (ctx_offset->offset + sizeof(lm_ssize_t));
+    *lm__byte_array_at_int(data->array, ctx_offset->offset) =
+            data->offset - (ctx_offset->offset + sizeof(lm_int));
 }
 
 enum lm__loop_control_e {
@@ -371,7 +371,7 @@ enum lm__loop_control_e {
     LM__LOOP_CONTROL_CONTINUE
 };
 
-void lm__byte_code_generator_map_loop_control_offsets(lm__byte_code_generator_t* generator, enum lm__loop_control_e which_control, lm_ssize_t offset) {
+void lm__byte_code_generator_map_loop_control_offsets(lm__byte_code_generator_t* generator, enum lm__loop_control_e which_control, lm_int offset) {
     lm_list_node_t* node = lm_list_tail(&generator->loop_ctx_head);
     lm__byte_code_generator_loop_context_t* loop_ctx = lm_list_entry(node, lm__byte_code_generator_loop_context_t, list_node);
 
@@ -400,21 +400,21 @@ void lm__byte_code_generator_generate_while_stmt(lm__byte_code_generator_t* gene
 
     lm__byte_code_generator_emit(generator, LM__OP_JMP_IF_FALSE);
     size_t jump_to_end_param_pos = lm__byte_array_size(generator->array);
-    lm__byte_code_generator_emit_ssize_t(generator, 0);
+    lm__byte_code_generator_emit_i32(generator, 0);
     size_t loop_body_begin_pos = lm__byte_array_size(generator->array);
 
     lm__byte_code_generator_generate_statement(generator, while_stmt->body);
 
     lm__byte_code_generator_emit(generator, LM__OP_JMP);
     size_t jump_to_begin_param_pos = lm__byte_array_size(generator->array);
-    lm__byte_code_generator_emit_ssize_t(generator, 0);
+    lm__byte_code_generator_emit_i32(generator, 0);
     size_t loop_body_end_pos = lm__byte_array_size(generator->array);
 
     ssize_t from_end_to_begin_offset = loop_begin_pos - loop_body_end_pos;
     ssize_t from_begin_to_end_offset = loop_body_end_pos - loop_body_begin_pos;
 
-    *lm__byte_array_at_ssize_t(generator->array, jump_to_begin_param_pos) = from_end_to_begin_offset;
-    *lm__byte_array_at_ssize_t(generator->array, jump_to_end_param_pos) = from_begin_to_end_offset;
+    *lm__byte_array_at_int(generator->array, jump_to_begin_param_pos) = from_end_to_begin_offset;
+    *lm__byte_array_at_int(generator->array, jump_to_end_param_pos) = from_begin_to_end_offset;
 
     lm__byte_code_generator_map_loop_control_offsets(generator, LM__LOOP_CONTROL_BREAK, loop_body_end_pos);
     lm__byte_code_generator_map_loop_control_offsets(generator, LM__LOOP_CONTROL_CONTINUE, loop_begin_pos);
@@ -425,13 +425,13 @@ void lm__byte_code_generator_generate_while_stmt(lm__byte_code_generator_t* gene
 void lm__byte_code_generator_generate_break_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
     lm__byte_code_generator_emit(generator, LM__OP_JMP);
     lm__byte_code_generator_add_break_to_loop_context(generator, lm__byte_array_size(generator->array));
-    lm__byte_code_generator_emit_ssize_t(generator, 0);
+    lm__byte_code_generator_emit_i32(generator, 0);
 }
 
 void lm__byte_code_generator_generate_continue_stmt(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
     lm__byte_code_generator_emit(generator, LM__OP_JMP);
     lm__byte_code_generator_add_continue_to_loop_context(generator, lm__byte_array_size(generator->array));
-    lm__byte_code_generator_emit_ssize_t(generator, 0);
+    lm__byte_code_generator_emit_i32(generator, 0);
 }
 
 void lm__byte_code_generator_generate_expression(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
@@ -639,15 +639,7 @@ void lm__byte_code_generator_emit_f32(lm__byte_code_generator_t* generator, floa
 }
 
 void lm__byte_code_generator_emit_atom(lm__byte_code_generator_t* generator, lm_atom_t atom) {
-    lm__byte_array_push_size_t(generator->array, &atom);
-}
-
-void lm__byte_code_generator_emit_size_t(lm__byte_code_generator_t* generator, size_t value) {
-    lm__byte_array_push_size_t(generator->array, &value);
-}
-
-void lm__byte_code_generator_emit_ssize_t(lm__byte_code_generator_t* generator, ssize_t value) {
-    lm__byte_array_push_ssize_t(generator->array, &value);
+    lm__byte_array_push_u32(generator->array, &atom);
 }
 
 void lm_print_byte_code(uint8_t* byte_code, size_t size) {
@@ -717,7 +709,7 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
                 printf("LOAD_STRING ");
                 idx++;
 
-                printf("atom[%zu]\n", *_LM_CAST(lm_atom_t, idx));
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
                 idx += sizeof(lm_atom_t);
                 break;
             }
@@ -725,7 +717,7 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
                 printf("DECL_VAR ");
                 idx++;
 
-                printf("atom[%zu]\n", *_LM_CAST(lm_atom_t, idx));
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
                 idx += sizeof(lm_atom_t);
                 break;
             }
@@ -733,7 +725,7 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
                 printf("LOAD_VAR ");
                 idx++;
 
-                printf("atom[%zu]\n", *_LM_CAST(lm_atom_t, idx));
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
                 idx += sizeof(lm_atom_t);
                 break;
             }
@@ -741,7 +733,7 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
                 printf("STORE_VAR ");
                 idx++;
 
-                printf("atom[%zu]\n", *_LM_CAST(lm_atom_t, idx));
+                printf("atom[%d]\n", *_LM_CAST(lm_atom_t, idx));
                 idx += sizeof(lm_atom_t);
                 break;
             }
@@ -824,30 +816,30 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
                 printf("JMP ");
                 idx++;
 
-                lm_ssize_t diff = *_LM_CAST(lm_ssize_t, idx);
-                idx += sizeof(lm_ssize_t);
+                lm_int diff = *_LM_CAST(lm_int, idx);
+                idx += sizeof(lm_int);
 
-                printf("[%zd (%lld)]\n", diff, (idx - byte_code) + diff);
+                printf("[%d (%d)]\n", diff, (lm_int) (idx - byte_code) + diff);
                 break;
             }
             case LM__OP_JMP_IF_FALSE: {
                 printf("JMP_IF_FALSE ");
                 idx++;
 
-                lm_ssize_t diff = *_LM_CAST(lm_ssize_t, idx);
-                idx += sizeof(lm_ssize_t);
+                lm_int diff = *_LM_CAST(lm_int, idx);
+                idx += sizeof(lm_int);
 
-                printf("[%zd (%lld)]\n", diff, (idx - byte_code) + diff);
+                printf("[%d (%d)]\n", diff, (lm_int) (idx - byte_code) + diff);
                 break;
             }
             case LM__OP_JMP_IF_TRUE: {
                 printf("JMP_IF_TRUE ");
                 idx++;
 
-                lm_ssize_t diff = *_LM_CAST(lm_ssize_t, idx);
-                idx += sizeof(lm_ssize_t);
+                lm_int diff = *_LM_CAST(lm_int, idx);
+                idx += sizeof(lm_int);
 
-                printf("[%zd (%lld)]\n", diff, (idx - byte_code) + diff);
+                printf("[%d (%d)]\n", diff, (lm_int) (idx - byte_code) + diff);
                 break;
             }
             case LM__OP_CALL:

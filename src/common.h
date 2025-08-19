@@ -91,8 +91,6 @@ typedef struct lm_string_s {
 typedef char lm_bool;
 typedef int32_t lm_int;
 typedef float lm_float;
-typedef size_t lm_size_t;
-typedef ssize_t lm_ssize_t;
 
 #define LM_TRUE 1
 #define LM_FALSE 0
@@ -127,7 +125,7 @@ lm_bool lm_string_stoi(const lm_string_t* str, lm_int* val);
 
 lm_bool lm_string_stof(const lm_string_t* str, lm_float* val);
 
-typedef lm_size_t lm_atom_t;
+typedef uint32_t lm_atom_t;
 #define LM_ATOM_NIL 0
 
 #define lm_move(_p_ptr_dest, _p_ptr_src) ({ *_p_ptr_dest = *_p_ptr_src; *_p_ptr_src = NULL; })
