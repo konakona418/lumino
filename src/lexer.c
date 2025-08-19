@@ -83,7 +83,7 @@ const char* lm_token_type_to_string(lm_token_type_t type) {
             return "SEMICOLON";
         case LM_TOKEN_TYPE_DOT:
             return "DOT";
-        case LM_TOKEN_TYPE_KEYWORD_VAR:
+        case LM_TOKEN_TYPE_KEYWORD_LET:
             return "KEYWORD_VAR";
         case LM_TOKEN_TYPE_KEYWORD_FUNC:
             return "KEYWORD_FUNC";
@@ -107,10 +107,8 @@ const char* lm_token_type_to_string(lm_token_type_t type) {
             return "KEYWORD_FALSE";
         case LM_TOKEN_TYPE_KEYWORD_NULL:
             return "KEYWORD_NULL";
-        case LM_TOKEN_TYPE_KEYWORD_INCLUDE:
-            return "KEYWORD_INCLUDE";
-        case LM_TOKEN_TYPE_KEYWORD_DEFINE:
-            return "KEYWORD_DEFINE";
+        case LM_TOKEN_TYPE_KEYWORD_IMPORT:
+            return "KEYWORD_IMPORT";
         default:
             return "UNKNOWN";
     }
@@ -328,12 +326,11 @@ void lm__lexer_skip_comment(lm_lexer_t* lexer) {
     }
 }
 
-#define _LM_KEYWORD_COUNT 14
+#define _LM_KEYWORD_COUNT 13
 
 lm_bool lm__lexer_is_keyword(lm_string_t* str) {
     const char** keywords = (const char*[]){
-            "var",
-            "define",
+            "let",
             "for",
             "while",
             "break",
@@ -342,7 +339,7 @@ lm_bool lm__lexer_is_keyword(lm_string_t* str) {
             "return",
             "if",
             "else",
-            "include",
+            "import",
             "true",
             "false",
             "null",
@@ -359,8 +356,7 @@ lm_bool lm__lexer_is_keyword(lm_string_t* str) {
 
 lm_token_type_t lm__lexer_get_keyword_type(lm_string_t* str) {
     const char** keywords = (const char*[]){
-            "var",
-            "define",
+            "let",
             "for",
             "while",
             "break",
@@ -369,15 +365,14 @@ lm_token_type_t lm__lexer_get_keyword_type(lm_string_t* str) {
             "return",
             "if",
             "else",
-            "include",
+            "import",
             "true",
             "false",
             "null",
     };
 
     const lm_token_type_t* keyword_types = (lm_token_type_t[]){
-            LM_TOKEN_TYPE_KEYWORD_VAR,
-            LM_TOKEN_TYPE_KEYWORD_DEFINE,
+            LM_TOKEN_TYPE_KEYWORD_LET,
             LM_TOKEN_TYPE_KEYWORD_FOR,
             LM_TOKEN_TYPE_KEYWORD_WHILE,
             LM_TOKEN_TYPE_KEYWORD_BREAK,
@@ -386,7 +381,7 @@ lm_token_type_t lm__lexer_get_keyword_type(lm_string_t* str) {
             LM_TOKEN_TYPE_KEYWORD_RETURN,
             LM_TOKEN_TYPE_KEYWORD_IF,
             LM_TOKEN_TYPE_KEYWORD_ELSE,
-            LM_TOKEN_TYPE_KEYWORD_INCLUDE,
+            LM_TOKEN_TYPE_KEYWORD_IMPORT,
             LM_TOKEN_TYPE_KEYWORD_TRUE,
             LM_TOKEN_TYPE_KEYWORD_FALSE,
             LM_TOKEN_TYPE_KEYWORD_NULL,

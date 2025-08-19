@@ -132,18 +132,11 @@ lm__ast_decl_t* lm__ast_decl_alloc(lm_string_t* name, lm__ast_statement_t* value
 
 void lm__ast_decl_free(lm__ast_statement_t* stmt);
 
-typedef struct lm__ast_include_s {
+typedef struct lm__ast_import_s {
     LM_AST_STATEMENT_HEADER
 
     lm_string_t* path;
-} lm__ast_include_t;
-
-typedef struct lm__ast_define_s {
-    LM_AST_STATEMENT_HEADER
-
-    lm_string_t* name;
-    lm__ast_statement_t* value_stmt;
-} lm__ast_define_t;
+} lm__ast_import_t;
 
 typedef enum lm__ast_expression_type_e {
     LM_AST_EXPRESSION_TYPE_ASSIGN,

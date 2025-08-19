@@ -114,9 +114,7 @@ lm__ast_statement_t* lm__parser_parse_return_statement(lm_parser_t* parser);
 
 lm__ast_statement_t* lm__parser_parse_func_statement(lm_parser_t* parser);
 
-lm__ast_statement_t* lm__parser_parse_include_statement(lm_parser_t* parser);
-
-lm__ast_statement_t* lm__parser_parse_define_statement(lm_parser_t* parser);
+lm__ast_statement_t* lm__parser_parse_import_statement(lm_parser_t* parser);
 
 lm__ast_expression_t* lm__parser_parse_expression(lm_parser_t* parser);
 

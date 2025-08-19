@@ -312,7 +312,7 @@ lm__ast_statement_t* lm__parser_parse_statement(lm_parser_t* parser) {
     lm__ast_statement_t* stmt = NULL;
 
     switch (lm__parser_current(parser).type) {
-        case LM_TOKEN_TYPE_KEYWORD_VAR:
+        case LM_TOKEN_TYPE_KEYWORD_LET:
             stmt = lm__parser_parse_decl(parser);
             break;
         case LM_TOKEN_TYPE_KEYWORD_IF:
@@ -339,11 +339,8 @@ lm__ast_statement_t* lm__parser_parse_statement(lm_parser_t* parser) {
         case LM_TOKEN_TYPE_KEYWORD_RETURN:
             stmt = lm__parser_parse_return_statement(parser);
             break;
-        case LM_TOKEN_TYPE_KEYWORD_INCLUDE:
-            stmt = lm__parser_parse_include_statement(parser);
-            break;
-        case LM_TOKEN_TYPE_KEYWORD_DEFINE:
-            stmt = lm__parser_parse_define_statement(parser);
+        case LM_TOKEN_TYPE_KEYWORD_IMPORT:
+            stmt = lm__parser_parse_import_statement(parser);
             break;
         default:
             stmt = (lm__ast_statement_t*) lm__parser_parse_expression(parser);
@@ -651,7 +648,7 @@ lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser) {
 
 
 lm__ast_statement_t* lm__parser_parse_decl(lm_parser_t* parser) {
-    lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_VAR);
+    lm__parser_consume(parser, LM_TOKEN_TYPE_KEYWORD_LET);
 
     lm_token_t name = lm__parser_consume(parser, LM_TOKEN_TYPE_IDENTIFIER);
 
@@ -755,10 +752,6 @@ lm__ast_statement_t* lm__parser_parse_func_statement(lm_parser_t* parser) {
     return NULL;
 }
 
-lm__ast_statement_t* lm__parser_parse_include_statement(lm_parser_t* parser) {
-    return NULL;
-}
-
-lm__ast_statement_t* lm__parser_parse_define_statement(lm_parser_t* parser) {
+lm__ast_statement_t* lm__parser_parse_import_statement(lm_parser_t* parser) {
     return NULL;
 }

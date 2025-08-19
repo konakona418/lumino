@@ -61,7 +61,7 @@ typedef enum lm_token_type_e {
     LM_TOKEN_TYPE_SEMICOLON,
     LM_TOKEN_TYPE_DOT,
 
-    LM_TOKEN_TYPE_KEYWORD_VAR,
+    LM_TOKEN_TYPE_KEYWORD_LET,
     LM_TOKEN_TYPE_KEYWORD_FUNC,
     LM_TOKEN_TYPE_KEYWORD_IF,
     LM_TOKEN_TYPE_KEYWORD_ELSE,
@@ -73,8 +73,7 @@ typedef enum lm_token_type_e {
     LM_TOKEN_TYPE_KEYWORD_TRUE,
     LM_TOKEN_TYPE_KEYWORD_FALSE,
     LM_TOKEN_TYPE_KEYWORD_NULL,
-    LM_TOKEN_TYPE_KEYWORD_INCLUDE,
-    LM_TOKEN_TYPE_KEYWORD_DEFINE,
+    LM_TOKEN_TYPE_KEYWORD_IMPORT,
 } lm_token_type_t;
 
 const char* lm_token_type_to_string(lm_token_type_t type);
