@@ -202,6 +202,10 @@ lm_float lm__context_consume_float(lm_context_t* context);
 
 lm_atom_t lm__context_consume_atom(lm_context_t* context);
 
+lm_ssize_t lm__context_consume_ssize_t(lm_context_t* context);
+
+lm_size_t lm__context_consume_size_t(lm_context_t* context);
+
 void lm__context_run(lm_context_t* context);
 
 typedef enum lm_eval_scope_e {
