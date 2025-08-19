@@ -497,10 +497,10 @@ void lm__context_run(lm_context_t* context) {
     while (context->pc != terminal) {
         lm__opcode_value_t opcode = lm__context_consume_instr(context);
         switch (opcode) {
-            case LM__OPCODE_NOP: {
+            case LM__NOP: {
                 continue;
             }
-            case LM__OPCODE_HALT: {
+            case LM__HALT: {
                 return;
             }
             case LM__POP: {

@@ -303,7 +303,12 @@ void lm__byte_code_generator_generate_statement(lm__byte_code_generator_t* gener
 
 void lm__byte_code_generator_generate_declaration(lm__byte_code_generator_t* generator, lm__ast_statement_t* stmt) {
     lm__ast_decl_t* decl = _LM_CAST(lm__ast_decl_t, stmt);
-    lm__byte_code_generator_generate_expression(generator, _LM_CAST(lm__ast_expression_t, decl->value_stmt));
+
+    if (decl->value_stmt) {
+        lm__byte_code_generator_generate_expression(generator, _LM_CAST(lm__ast_expression_t, decl->value_stmt));
+    } else {
+        lm__byte_code_generator_emit(generator, LM__LOAD_NULL);
+    }
 
     lm_atom_t atom = lm__byte_code_generator_alloc_atom(generator, decl->name);
 
@@ -489,9 +494,35 @@ void lm__byte_code_generator_generate_var_access_expr(lm__byte_code_generator_t*
 
 void lm__byte_code_generator_generate_assign_expr(lm__byte_code_generator_t* generator, lm__ast_expression_t* expr) {
     lm__ast_assign_expr_t* assign_expr = _LM_CAST(lm__ast_assign_expr_t, expr);
+    if (assign_expr->assign_type == LM_AST_ASSIGN_EXPR_TYPE_NORMAL) {
+        lm__byte_code_generator_generate_expression(generator, assign_expr->rhs);
+        lm__byte_code_generator_generate_lvalue_expr(generator, assign_expr->lhs);
+    } else {
+        lm__byte_code_generator_generate_expression(generator, assign_expr->rhs);
+        lm__byte_code_generator_generate_expression(generator, assign_expr->lhs);
+        lm__opcode_value_t opcode;
+        switch (assign_expr->assign_type) {
+            case LM_AST_ASSIGN_EXPR_TYPE_ADD:
+                opcode = LM__OP_ADD;
+                break;
+            case LM_AST_ASSIGN_EXPR_TYPE_SUB:
+                opcode = LM__OP_SUB;
+                break;
+            case LM_AST_ASSIGN_EXPR_TYPE_MUL:
+                opcode = LM__OP_MUL;
+                break;
+            case LM_AST_ASSIGN_EXPR_TYPE_DIV:
+                opcode = LM__OP_DIV;
+                break;
+            default:
+                _LM_ASSERT(0, "error branch reached");
+                break;
+        }
 
-    lm__byte_code_generator_generate_expression(generator, assign_expr->rhs);
-    lm__byte_code_generator_generate_lvalue_expr(generator, assign_expr->lhs);
+        lm__byte_code_generator_emit(generator, opcode);
+
+        lm__byte_code_generator_generate_lvalue_expr(generator, assign_expr->lhs);
+    }
 }
 
 lm__opcode_value_t lm__byte_code_generator_binary_expr_type_to_opcode(lm__ast_binary_expr_type_t type) {
@@ -540,6 +571,8 @@ lm__opcode_value_t lm__byte_code_generator_unary_expr_type_to_opcode(lm__ast_una
     switch (type) {
         case LM_AST_UNARY_EXPR_TYPE_NEG:
             return LM__OP_NEG;
+        case LM_AST_UNARY_EXPR_TYPE_NOT:
+            return LM__OP_NOT;
         default:
             _LM_ASSERT(0, "not a supported unary expr type");
     }
@@ -622,12 +655,12 @@ void lm_print_byte_code(uint8_t* byte_code, size_t size) {
     while (idx != byte_code + size) {
         printf("%d: ", (lm_int) (idx - byte_code));
         switch ((lm__opcode_value_t) *idx) {
-            case LM__OPCODE_NOP: {
+            case LM__NOP: {
                 printf("NOP\n");
                 idx++;
                 break;
             }
-            case LM__OPCODE_HALT: {
+            case LM__HALT: {
                 printf("HALT\n");
                 idx++;
                 break;

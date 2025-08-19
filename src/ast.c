@@ -155,12 +155,13 @@ void lm__ast_decl_free(lm__ast_statement_t* stmt) {
     _LM_FREE(stmt);
 }
 
-lm__ast_assign_expr_t* lm__ast_assign_expr_alloc(lm__ast_expression_t* lhs, lm__ast_expression_t* rhs) {
+lm__ast_assign_expr_t* lm__ast_assign_expr_alloc(lm__ast_assign_expr_type_t type, lm__ast_expression_t* lhs, lm__ast_expression_t* rhs) {
     lm__ast_assign_expr_t* expr = _LM_ALLOC(lm__ast_assign_expr_t);
     lm_list_node_init(&expr->list_node);
 
     expr->stmt_type = LM_AST_STATEMENT_TYPE_EXPRESSION;
     expr->expr_type = LM_AST_EXPRESSION_TYPE_ASSIGN;
+    expr->assign_type = type;
     expr->result_discardable = LM_FALSE;
     expr->vtbl.free = lm__ast_assign_expr_free;
 

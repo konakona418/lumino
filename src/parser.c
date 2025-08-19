@@ -368,7 +368,40 @@ lm__ast_expression_t* lm__parser_parse_assign_expression(lm_parser_t* parser) {
         lm__parser_next(parser);
         lm__ast_expression_t* rhs = lm__parser_parse_simple_expression(parser);
 
-        lm__ast_assign_expr_t* assign_expr = lm__ast_assign_expr_alloc(lhs, rhs);
+        lm__ast_assign_expr_t* assign_expr =
+                lm__ast_assign_expr_alloc(LM_AST_ASSIGN_EXPR_TYPE_NORMAL, lhs, rhs);
+        assign_expr->result_discardable = LM_FALSE;
+
+        return _LM_CAST(lm__ast_expression_t, assign_expr);
+    } else if (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_INCREASE_BY ||
+               lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_DECREASE_BY ||
+               lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_MULTIPLY_BY ||
+               lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_DIVIDE_BY) {
+        lm_token_type_t op_type = lm__parser_current(parser).type;
+
+        lm__parser_next(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_simple_expression(parser);
+
+        lm__ast_assign_expr_type_t assign_type;
+        switch (op_type) {
+            case LM_TOKEN_TYPE_OP_INCREASE_BY:
+                assign_type = LM_AST_ASSIGN_EXPR_TYPE_ADD;
+                break;
+            case LM_TOKEN_TYPE_OP_DECREASE_BY:
+                assign_type = LM_AST_ASSIGN_EXPR_TYPE_SUB;
+                break;
+            case LM_TOKEN_TYPE_OP_MULTIPLY_BY:
+                assign_type = LM_AST_ASSIGN_EXPR_TYPE_MUL;
+                break;
+            case LM_TOKEN_TYPE_OP_DIVIDE_BY:
+                assign_type = LM_AST_ASSIGN_EXPR_TYPE_DIV;
+                break;
+            default:
+                _LM_ASSERT(0, "error branch reached");
+                break;
+        }
+
+        lm__ast_assign_expr_t* assign_expr = lm__ast_assign_expr_alloc(assign_type, lhs, rhs);
         assign_expr->result_discardable = LM_FALSE;
 
         return _LM_CAST(lm__ast_expression_t, assign_expr);
@@ -487,7 +520,7 @@ lm__ast_expression_t* lm__parser_parse_additive_expression(lm_parser_t* parser) 
 }
 
 lm__ast_expression_t* lm__parser_parse_multiplicative_expression(lm_parser_t* parser) {
-    lm__ast_expression_t* lhs = lm__parser_parse_power_expression(parser);
+    lm__ast_expression_t* lhs = lm__parser_parse_unary_expression(parser);
 
     while (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_MUL ||
            lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_DIV ||
@@ -509,26 +542,9 @@ lm__ast_expression_t* lm__parser_parse_multiplicative_expression(lm_parser_t* pa
         }
 
         lm__parser_next(parser);
-        lm__ast_expression_t* rhs = lm__parser_parse_power_expression(parser);
+        lm__ast_expression_t* rhs = lm__parser_parse_unary_expression(parser);
 
         return _LM_CAST(lm__ast_expression_t, lm__ast_binary_expr_alloc(type, lhs, rhs));
-    }
-
-    return lhs;
-}
-
-lm__ast_expression_t* lm__parser_parse_power_expression(lm_parser_t* parser) {
-    lm__ast_expression_t* lhs = lm__parser_parse_unary_expression(parser);
-
-    while (lm__parser_current(parser).type == LM_TOKEN_TYPE_OP_POW) {
-        lm__parser_next(parser);
-        lm__ast_expression_t* rhs = lm__parser_parse_power_expression(parser);
-
-        return _LM_CAST(
-                lm__ast_expression_t,
-                lm__ast_binary_expr_alloc(
-                        LM_AST_BINARY_EXPR_TYPE_POW,
-                        lhs, rhs));
     }
 
     return lhs;
@@ -548,13 +564,18 @@ lm__ast_expression_t* lm__parser_parse_unary_expression(lm_parser_t* parser) {
             lm__parser_next(parser);
             break;
         }
+        case LM_TOKEN_TYPE_OP_LOGICAL_NOT: {
+            lm__parser_next(parser);
+            rhs = lm__parser_parse_primary(parser);
+
+            return _LM_CAST(lm__ast_expression_t, lm__ast_unary_expr_alloc(LM_AST_UNARY_EXPR_TYPE_NOT, rhs));
+            break;
+        }
         default:
             break;
     }
 
     rhs = lm__parser_parse_primary(parser);
-
-    // todo: bang(!) operator
 
     return rhs;
 }

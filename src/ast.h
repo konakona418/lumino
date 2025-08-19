@@ -155,15 +155,24 @@ typedef struct lm__ast_expression_s {
     LM_AST_EXPRESSION_HEADER
 } lm__ast_expression_t;
 
+typedef enum lm__ast_assign_expr_type_e {
+    LM_AST_ASSIGN_EXPR_TYPE_NORMAL,
+    LM_AST_ASSIGN_EXPR_TYPE_ADD,
+    LM_AST_ASSIGN_EXPR_TYPE_SUB,
+    LM_AST_ASSIGN_EXPR_TYPE_MUL,
+    LM_AST_ASSIGN_EXPR_TYPE_DIV,
+} lm__ast_assign_expr_type_t;
+
 typedef struct lm__ast_assign_expr_s {
     LM_AST_STATEMENT_HEADER
     LM_AST_EXPRESSION_HEADER
+    lm__ast_assign_expr_type_t assign_type;
 
     lm__ast_expression_t* lhs;
     lm__ast_expression_t* rhs;
 } lm__ast_assign_expr_t;
 
-lm__ast_assign_expr_t* lm__ast_assign_expr_alloc(lm__ast_expression_t* lhs, lm__ast_expression_t* rhs);
+lm__ast_assign_expr_t* lm__ast_assign_expr_alloc(lm__ast_assign_expr_type_t type, lm__ast_expression_t* lhs, lm__ast_expression_t* rhs);
 
 void lm__ast_assign_expr_free(lm__ast_statement_t* expr);
 
@@ -202,6 +211,7 @@ void lm__ast_binary_expr_free(lm__ast_statement_t* expr);
 
 typedef enum lm__ast_unary_expr_type_e {
     LM_AST_UNARY_EXPR_TYPE_NEG,
+    LM_AST_UNARY_EXPR_TYPE_NOT
 } lm__ast_unary_expr_type_t;
 
 typedef struct lm__ast_unary_expr_s {

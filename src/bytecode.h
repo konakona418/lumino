@@ -8,8 +8,8 @@
 typedef uint8_t lm__opcode_t;
 
 typedef enum lm__opcode_value_e {
-    LM__OPCODE_NOP = 0,
-    LM__OPCODE_HALT,
+    LM__NOP = 0,
+    LM__HALT,
 
     LM__PUSH,
     LM__POP,

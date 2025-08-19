@@ -47,10 +47,20 @@ const char* lm_token_type_to_string(lm_token_type_t type) {
             return "OP_DIV";
         case LM_TOKEN_TYPE_OP_MOD:
             return "OP_MOD";
-        case LM_TOKEN_TYPE_OP_POW:
-            return "OP_POW";
         case LM_TOKEN_TYPE_OP_ASSIGN:
             return "OP_ASSIGN";
+        case LM_TOKEN_TYPE_OP_INCREASE_BY:
+            return "OP_INCREASE_BY";
+        case LM_TOKEN_TYPE_OP_DECREASE_BY:
+            return "OP_DECREASE_BY";
+        case LM_TOKEN_TYPE_OP_MULTIPLY_BY:
+            return "OP_MULTIPLY_BY";
+        case LM_TOKEN_TYPE_OP_DIVIDE_BY:
+            return "OP_DIVIDE_BY";
+        case LM_TOKEN_TYPE_OP_INCREASE:
+            return "OP_INCREASE";
+        case LM_TOKEN_TYPE_OP_DECREASE:
+            return "OP_DECREASE";
         case LM_TOKEN_TYPE_OP_EQUAL:
             return "OP_EQUAL";
         case LM_TOKEN_TYPE_OP_NOT_EQUAL:
@@ -63,6 +73,12 @@ const char* lm_token_type_to_string(lm_token_type_t type) {
             return "OP_GREATER_THAN_EQUAL";
         case LM_TOKEN_TYPE_OP_LESS_THAN_EQUAL:
             return "OP_LESS_THAN_EQUAL";
+        case LM_TOKEN_TYPE_OP_LOGICAL_AND:
+            return "OP_LOGICAL_AND";
+        case LM_TOKEN_TYPE_OP_LOGICAL_OR:
+            return "OP_LOGICAL_OR";
+        case LM_TOKEN_TYPE_OP_LOGICAL_NOT:
+            return "OP_LOGICAL_NOT";
         case LM_TOKEN_TYPE_L_PARENTHESIS:
             return "L_PARENTHESIS";
         case LM_TOKEN_TYPE_R_PARENTHESIS:
@@ -216,6 +232,12 @@ lm_token_t lm_lexer_next_token(lm_lexer_t* lexer) {
         _LM_HANDLE_TWO_CHAR_OPS('>', '=', LM_TOKEN_TYPE_OP_GREATER_THAN_EQUAL, lexer)
         _LM_HANDLE_TWO_CHAR_OPS('&', '&', LM_TOKEN_TYPE_OP_LOGICAL_AND, lexer)
         _LM_HANDLE_TWO_CHAR_OPS('|', '|', LM_TOKEN_TYPE_OP_LOGICAL_OR, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('+', '=', LM_TOKEN_TYPE_OP_INCREASE_BY, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('-', '=', LM_TOKEN_TYPE_OP_DECREASE_BY, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('*', '=', LM_TOKEN_TYPE_OP_MULTIPLY_BY, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('/', '=', LM_TOKEN_TYPE_OP_DIVIDE_BY, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('+', '+', LM_TOKEN_TYPE_OP_INCREASE, lexer)
+        _LM_HANDLE_TWO_CHAR_OPS('-', '-', LM_TOKEN_TYPE_OP_DECREASE, lexer)
     }
 
     switch (lm__lexer_current_char(lexer)) {
@@ -235,9 +257,9 @@ lm_token_t lm_lexer_next_token(lm_lexer_t* lexer) {
         _LM_HANDLE_CHAR('*', LM_TOKEN_TYPE_OP_MUL)
         _LM_HANDLE_CHAR('/', LM_TOKEN_TYPE_OP_DIV)
         _LM_HANDLE_CHAR('%', LM_TOKEN_TYPE_OP_MOD)
-        _LM_HANDLE_CHAR('^', LM_TOKEN_TYPE_OP_POW)
         _LM_HANDLE_CHAR('<', LM_TOKEN_TYPE_OP_LESS_THAN)
         _LM_HANDLE_CHAR('>', LM_TOKEN_TYPE_OP_GREATER_THAN)
+        _LM_HANDLE_CHAR('!', LM_TOKEN_TYPE_OP_LOGICAL_NOT)
         default: {
             char chr = lm__lexer_current_char(lexer);
             if (chr == '\0') {

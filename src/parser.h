@@ -134,8 +134,6 @@ lm__ast_expression_t* lm__parser_parse_additive_expression(lm_parser_t* parser);
 
 lm__ast_expression_t* lm__parser_parse_multiplicative_expression(lm_parser_t* parser);
 
-lm__ast_expression_t* lm__parser_parse_power_expression(lm_parser_t* parser);
-
 lm__ast_expression_t* lm__parser_parse_unary_expression(lm_parser_t* parser);
 
 lm__ast_expression_t* lm__parser_parse_primary(lm_parser_t* parser);
