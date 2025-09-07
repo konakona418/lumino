@@ -348,26 +348,31 @@ void lm__lexer_skip_comment(lm_lexer_t* lexer) {
     }
 }
 
-#define _LM_KEYWORD_COUNT 13
+#define _LM_FOREACH_KEYWORD()                   \
+    X(let, LM_TOKEN_TYPE_KEYWORD_LET)           \
+    X(for, LM_TOKEN_TYPE_KEYWORD_FOR)           \
+    X(while, LM_TOKEN_TYPE_KEYWORD_WHILE)       \
+    X(break, LM_TOKEN_TYPE_KEYWORD_BREAK)       \
+    X(continue, LM_TOKEN_TYPE_KEYWORD_CONTINUE) \
+    X(func, LM_TOKEN_TYPE_KEYWORD_FUNC)         \
+    X(return, LM_TOKEN_TYPE_KEYWORD_RETURN)     \
+    X(if, LM_TOKEN_TYPE_KEYWORD_IF)             \
+    X(else, LM_TOKEN_TYPE_KEYWORD_ELSE)         \
+    X(import, LM_TOKEN_TYPE_KEYWORD_IMPORT)     \
+    X(true, LM_TOKEN_TYPE_KEYWORD_TRUE)         \
+    X(false, LM_TOKEN_TYPE_KEYWORD_FALSE)       \
+    X(null, LM_TOKEN_TYPE_KEYWORD_NULL)
+
+#define X(name, type) +1
+const size_t _LM_KEYWORD_COUNT = (0 _LM_FOREACH_KEYWORD());
+#undef X
 
 lm_bool lm__lexer_is_keyword(lm_string_t* str) {
-    const char** keywords = (const char*[]){
-            "let",
-            "for",
-            "while",
-            "break",
-            "continue",
-            "func",
-            "return",
-            "if",
-            "else",
-            "import",
-            "true",
-            "false",
-            "null",
-    };
+#define X(name, type) #name,
+    const char* keywords[] = {_LM_FOREACH_KEYWORD()};
+#undef X
 
-    for (size_t i = 0; i < _LM_KEYWORD_COUNT - 1; i++) {
+    for (size_t i = 0; i < _LM_KEYWORD_COUNT; i++) {
         if (strcmp(str->data, keywords[i]) == 0) {
             return LM_TRUE;
         }
@@ -377,39 +382,15 @@ lm_bool lm__lexer_is_keyword(lm_string_t* str) {
 }
 
 lm_token_type_t lm__lexer_get_keyword_type(lm_string_t* str) {
-    const char** keywords = (const char*[]){
-            "let",
-            "for",
-            "while",
-            "break",
-            "continue",
-            "func",
-            "return",
-            "if",
-            "else",
-            "import",
-            "true",
-            "false",
-            "null",
-    };
+#define X(name, type) #name,
+    const char* keywords[] = {_LM_FOREACH_KEYWORD()};
+#undef X
 
-    const lm_token_type_t* keyword_types = (lm_token_type_t[]){
-            LM_TOKEN_TYPE_KEYWORD_LET,
-            LM_TOKEN_TYPE_KEYWORD_FOR,
-            LM_TOKEN_TYPE_KEYWORD_WHILE,
-            LM_TOKEN_TYPE_KEYWORD_BREAK,
-            LM_TOKEN_TYPE_KEYWORD_CONTINUE,
-            LM_TOKEN_TYPE_KEYWORD_FUNC,
-            LM_TOKEN_TYPE_KEYWORD_RETURN,
-            LM_TOKEN_TYPE_KEYWORD_IF,
-            LM_TOKEN_TYPE_KEYWORD_ELSE,
-            LM_TOKEN_TYPE_KEYWORD_IMPORT,
-            LM_TOKEN_TYPE_KEYWORD_TRUE,
-            LM_TOKEN_TYPE_KEYWORD_FALSE,
-            LM_TOKEN_TYPE_KEYWORD_NULL,
-    };
+#define X(name, type) type,
+    const lm_token_type_t keyword_types[] = {_LM_FOREACH_KEYWORD()};
+#undef X
 
-    for (size_t i = 0; i < _LM_KEYWORD_COUNT - 1; i++) {
+    for (size_t i = 0; i < _LM_KEYWORD_COUNT; i++) {
         if (strcmp(str->data, keywords[i]) == 0) {
             return keyword_types[i];
         }

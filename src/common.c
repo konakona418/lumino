@@ -218,7 +218,7 @@ void lm__error_vtbl_free(lm_error_t* error) {
 }
 
 const char* lm__error_vtbl_what(lm_error_t* error) {
-    return "nLamina compiler error";
+    return "lumino compiler error";
 }
 
 lm_error_t* lm_error_alloc(const char* msg) {
